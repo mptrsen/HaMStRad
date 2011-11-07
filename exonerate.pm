@@ -19,7 +19,7 @@ sub new {#{{{
 	my $exonerate_model = $exhaustive ? 'protein2genome:bestfit' : 'protein2genome';
 	my $exonerate_exhaustive = $exhaustive ? '--exhaustive 2> /dev/null' : '';
 	# roll your own output for exonerate
-	my $exonerate_ryo = "Score: %s\n%V\n>%qi_%ti_%tcb-%tce_cdna\n%tcs//\n>%qi[%qab:%qae]_query\n%qas//\n>%ti[%tab:%tae]_target\n%tas//\n";
+	my $exonerate_ryo = "Score: %s\n%V\n>%qi_%ti_[%tcb-%tce]_cdna\n%tcs//\n>%qi[%qab:%qae]_query\n%qas//\n>%ti[%tab:%tae]_target\n%tas//\n";
 	my $exonerate_cmd = "exonerate --ryo '$exonerate_ryo' $exonerate_exhaustive --model $exonerate_model --verbose 0 --showalignment no --showvulgar no";
 	my $translate_cmd = "fastatranslate -F 1";
 
