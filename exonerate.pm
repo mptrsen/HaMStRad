@@ -200,7 +200,7 @@ sub codons {#{{{
 	my $codon_seq = '';
 	my @transtmp;
 
-	## step 1: extract the relevant info from the genewise output
+	## step 1: extract the relevant info from the exonerate output
 	for (my $i = 0; $i < $self->{gw_count}; $i++) {
 		if ($self->{gw}->[$i] =~ /^>.*_target$/) {# the codons set starts
 			while ($self->{gw}->[$i] !~ '//') {
@@ -218,22 +218,24 @@ sub codons {#{{{
 		if ($transtmp[$i] =~ />/) {
 			$count++;
 			$trans->[$count]->{seq} = ''; # initialize
-			if ($transtmp[$i] =~ /.*\[([0-9]+):([0-9]+)\].*/) {
+			if ($transtmp[$i] =~ /.*\[([0-9]+):([0-9]+)\].*/) {	# this info needs to be in the exonerate output as well
 				$trans->[$count]->{start} = $1;
 				$trans->[$count]->{end} = $2;
 			}
 		}
 		else {
-			$transtmp[$i] =~ tr/a-z/A-Z/;
+			$transtmp[$i] =~ tr/a-z/A-Z/;	# upper-case all sequence lines
 			$trans->[$count]->{seq} .= $transtmp[$i];
 		}
-	}
+	}	# $count never exceeds 1 because there is never more than one target seq in the exonerate output
 
 	## step 3: connect the fragments
 	if (@$trans == 1) {
+		print '@$trans is 1, only one seq', "\n" if $debug;
 		$codon_seq = $trans->[0]->{seq};
 	}
-	else {
+	else {	# under what circumstances is there more than one target seq in the genewise/exonerate output?
+		print '@$trans is not 1, more than one seq', "\n" if $debug;
 		for (my $i = 0; $i < @$trans; $i++) {
 			$codon_seq .= $trans->[$i]->{seq};
 			if ($i < (@$trans - 1)) {
@@ -264,7 +266,7 @@ sub codons {#{{{
 	return ($codon_seq);
 }#}}}
 
-# is this ever called?
+# is this ever called? apparently not.
 #--------------------------------------------------
 # sub protein_borders {#{{{
 # 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
@@ -283,7 +285,7 @@ sub codons {#{{{
 # }#}}}
 #-------------------------------------------------- 
 
-# and this?
+# and this? apparently not, either
 #--------------------------------------------------
 # sub cdna_borders {#{{{
 # 	print join(" ", (caller(0))[0..3]), "\n" if $debug;

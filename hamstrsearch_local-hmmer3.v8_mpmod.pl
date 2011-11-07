@@ -1,16 +1,4 @@
 #!/usr//bin/env perl
-use strict;
-use warnings;	#mp
-use lib '../bin/';
-use lib '../bin/Bio';
-use lib '/dmp-work/dmp/tools/hamstrsearch_local/bin';
-use Getopt::Long;
-use Bio::SearchIO;
-use Bio::Search::Hit::BlastHit;
-use run_genewise_hamstr;
-use exonerate;	#mp
-use Data::Dumper;	#mp
-
 # PROGRAMNAME: hamstrsearch_local.pl
 
 # Copyright (C) 2009 INGO EBERSBERGER, ingo.ebersberger@univie.ac.at
@@ -26,6 +14,18 @@ use Data::Dumper;	#mp
 # You should have received a copy of the GNU General Public License
 # along with this program; If not, see http://www.gnu.org/licenses
  
+use strict;
+use warnings;	#mp
+use lib '../bin/';
+use lib '../bin/Bio';
+use lib '/dmp-work/dmp/tools/hamstrsearch_local/bin';
+use Getopt::Long;
+use Bio::SearchIO;
+use Bio::Search::Hit::BlastHit;
+use run_genewise_hamstr;
+use exonerate;	#mp
+use Data::Dumper;	#mp
+
 # PROGRAM DESCRIPTION: See bottom of this file.
 ######################## start main #############################
 my $version = "hamstrsearch_local-hmmer3.v8.pl\n";
@@ -35,11 +35,11 @@ my $hmmsearchprog = 'hmmsearch'; #program for the hmm search
 my $wiseprog = 'genewise';
 
 ########## EDIT THE FOLLOWING TWO LINES TO CHOOSE YOUR BLAST PROGRAM ##########
-my $blast_prog = 'blastall';
-#my $blast_prog = 'blastp';
+#my $blast_prog = 'blastall';
+my $blast_prog = 'blastp';
 ###############################################################################
 
-my $alignmentprog = 'clustalw';
+my $alignmentprog = 'clustalw2';
 my $hmmpath = '../core_orthologs'; #path where the hmms are located
 my $blastpath = '../blast_dir'; #path to the blast-dbs
 my $tmpdir = 'tmp';
@@ -77,6 +77,7 @@ my $refspec_name = '';
 my $taxon_global;
 my $fileobj;
 my $fa_dir_neu = '';
+my $cdna_dir = '';
 my $gwrefprot;
 my $seqtype;
 my $align;
@@ -206,7 +207,7 @@ for (my $i = 0; $i < @hmms; $i++) {
   if ($check == 0) {
     die "error in retrieving refspec data\n";
   }
-	HMMER_RESULT:
+	HMMER_RESULT:			#mp added label for loop
   for (my $k = 0; $k < @results; $k++) {
     my $hitname = $results[$k];
     print "$hitname\n";
@@ -237,7 +238,7 @@ for (my $i = 0; $i < @hmms; $i++) {
     else {
       print "Reciprocity not fulfilled!\n";
     }
-  }
+  }	#mp end HMMER_RESULT
 
   ## 5) do the rest only if at least one hit was obtained
   if (defined $fileobj) {
@@ -254,6 +255,7 @@ for (my $i = 0; $i < @hmms; $i++) {
 
     ## 6) prepare the output
     my @taxa = keys(%$fileobj);
+		TAXON:	#mp added label for loop
     for (my $i = 0; $i< @taxa; $i++) {
       if ($rep) {
 				push @newseqs, ">$query_name|$fileobj->{$taxa[$i]}->{refspec_final}|$taxa[$i]|$fileobj->{$taxa[$i]}->{refid}";
@@ -304,7 +306,7 @@ for (my $i = 0; $i < @hmms; $i++) {
 					push @cds2store, $cdsline;
 				}
       }
-    }
+    }	#mp end TAXON
   }
 }	#mp end of loop through the hmms
 
@@ -336,10 +338,12 @@ else {
 }
 print "Done!\n";
 exit;
+
 ##################### start subs ###############
+
 ####### checkInput performs a number of checks whether sufficient information
 ### and all data are available to run HaMStR
-sub checkInput {
+sub checkInput {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my @log;
   my $check = 1;
@@ -353,7 +357,7 @@ sub checkInput {
 		print "removing newlines from the infile $dbfile such that a sequence forms a consecutive string\n";
 		`../bin/nentferner.pl -in=$dbfile -out=$dbfile.mod`;
 		if (-e "$dbfile.mod") {
-			print "\tNewlines from the infile have been removed.\n";
+			print "Newlines from the infile have been removedpl succeeded.\n";
 			push @log, "\tNewlines from the infile have been removed\n";
 			$dbfile = $dbfile . '.mod';
 			
@@ -592,6 +596,7 @@ sub checkInput {
 
   ## 13) setting up the directories where the output files will be put into.
   $fa_dir_neu = 'fa_dir_' . $dbfile_short . '_' . $hmmset . '_' . $refspec[0];
+	$cdna_dir = 'cdna_dir_' . $dbfile_short . '_' . $hmmset . '_' . $refspec[0];	#mp add cdna output dir
   if ($strict) {
       $fa_dir_neu .= '_strict';
   }
@@ -605,6 +610,11 @@ sub checkInput {
     if (!(-e "$fa_dir_neu")) {
       `mkdir -p $fa_dir_neu`;	#mp added -p flag to mkdir
     }
+		#mp added creation of cdna output dir
+		if (!(-e "$cdna_dir")) {
+			`mkdir -p $cdna_dir`;	#mp with -p flag
+		}
+		#mp end add creation of cdna output dir
     if (!(-e "$tmpdir")) {
       `mkdir -p $tmpdir`;	#mp added -p flag to mkdir
     }
@@ -626,13 +636,14 @@ sub checkInput {
 	print "Finished checking input.\n" if $debug;
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
   return ($check, @log);
-}
+}#}}}
+
 #################
 ## check4reciprocity is the second major part of the program. It checks
 ## whether the protein sequence that has been identified by the hmmsearch
 ## identifies in turn the protein from the reference taxon that was used to
 ## build the hmm.
-sub check4reciprocity {
+sub check4reciprocity {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my ($query_name, $hitname, $refspec_final, @refspec) = @_;
   my $searchdb;
@@ -729,9 +740,10 @@ sub check4reciprocity {
 		print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
     return (0, $hitseq);
   }
-}
+}#}}}
 #############
-sub getBestBlasthit {
+
+sub getBestBlasthit {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
     my @hits;
     my ($file) = @_;
@@ -758,9 +770,9 @@ sub getBestBlasthit {
     }
 		print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
     return(@hits);
-}
+}#}}}
 ##################
-sub getTaxon {
+sub getTaxon {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
     my ($hitname) = @_;
 #    my $q = "select name from taxon t, est_project e, est_info i, annotation_neu a where a.id = $hitname and a.contig_id = i.contig_id and i.project_id = e.project_id and e.taxon_id = t.taxon_id";
@@ -780,9 +792,9 @@ sub getTaxon {
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
 	return();
     }
-}
+}#}}}
 ###############
-sub determineReferences {
+sub determineReferences {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my ($fileobj, $taxon, $refspec_final, $hitname, $hitseq, $hitcount, $query_name) = @_;
 	my $refseq = '';
@@ -844,9 +856,9 @@ sub determineReferences {
 	print 'fileobj: ', Dumper($fileobj) if $debug;
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
 	return($fileobj);
-}
+}#}}}
 ###############
-sub processHits {
+sub processHits {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my ($fileobj) = @_; 
   ## 1) align all hit sequences for a taxon against the reference species
@@ -854,11 +866,11 @@ sub processHits {
   for (my $i = 0; $i < @taxa; $i++) {
     &orfRanking($taxa[$i]) if $fileobj->{$taxa[$i]}->{prot};
   }
-}  
+}  #}}}
   
 
 ################
-sub predictORF {
+sub predictORF {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $refseq_id = shift;	#mp refseq id that was assigned to this queryseq id
   my $fileobj_new;
@@ -906,6 +918,14 @@ sub predictORF {
 				next TAXON;
 			}
 			#mp end skip couple
+			#mp before translation, store the cdna in a cdna file for Karen :)
+			if ($use_exonerate) {
+				&save_cdna($gw, $refseq_id, #mp hmm number
+					$refspecobj->[$j],				#mp refspec id
+					$ids[$j],	)								#mp est header
+					or warn "Warning: Could not save cdna: $!\n";
+			}
+			#mp end store cdna
 			my $translation = $gw->translation;
 			my $cds = $gw->codons;
 			$translation =~ s/[-!]//g;	#mp deletes gaps and stop codons
@@ -928,9 +948,9 @@ sub predictORF {
 	print 'fileobj after sub predictORF: ', Dumper($fileobj) if $debug;	#mp added debug info
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp added debug info
   return($fileobj_new);
-}
+}#}}}
 ############################
-sub orfRanking {
+sub orfRanking {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my ($spec) = @_;
   my $result;
@@ -1000,9 +1020,9 @@ sub orfRanking {
   $fileobj->{$spec}->{refspec_final} = $fileobj->{$spec}->{refspec}->[0];
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
   return();
-}
+}#}}}
 ###########################
-sub sortRef {
+sub sortRef {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $result = shift;
 	my @sort;
@@ -1021,9 +1041,9 @@ sub sortRef {
 	}
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
 	return($result);
-}
+}#}}}
 ########################
-sub determineRef {
+sub determineRef {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my ($result, $spec) = @_;
   my $lastend = 0;
@@ -1065,9 +1085,9 @@ sub determineRef {
   $refid =~ s/PP$//;
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
   return($refprot, $refcds, $refid);
-}
+}#}}}
 #############################
-sub extractSeq {
+sub extractSeq {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my ($id, @aln) = @_;
   my $seq = '';
@@ -1086,18 +1106,18 @@ sub extractSeq {
   $seq =~ s/\s//g;
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
   return ($seq);
-}
+}#}}}
 ##############################
-sub revComp {
+sub revComp {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my ($seq) = @_;
 	$seq =~ tr/AGCTYRKMWSagct/TCGARYMKWSTCGA/;
 	$seq = reverse($seq);
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
 	return($seq);
-}
+}#}}}
 ##############################
-sub parseHmmer3 {
+sub parseHmmer3 {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my ($file, $path) = @_;
   if (!defined $path) {
@@ -1146,9 +1166,9 @@ sub parseHmmer3 {
 		print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
     return ($query);
   }
-}
+}#}}}
 #####################
-sub parseSeqfile {
+sub parseSeqfile {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my $seqref;
   my $id;
@@ -1181,9 +1201,9 @@ sub parseSeqfile {
 	}
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
   return ($seqref);
-}
+}#}}}
 ##################
-sub getAlignmentScore{ 
+sub getAlignmentScore{ #{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
     my ($refseq_cand, $hitseq) = @_;
     my @testseq = ('>hitseq', $hitseq, '>refseq', $refseq_cand);
@@ -1200,9 +1220,9 @@ sub getAlignmentScore{
     chomp $score;
 		print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
     return ($score);
-}
-######################3
-sub determineRefspecFinal {
+}#}}}
+######################
+sub determineRefspecFinal {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my ($query_name, @refspec) = @_;
   my $refspec_final;
@@ -1246,11 +1266,48 @@ sub determineRefspecFinal {
   }
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
   return(1, $refspec_final);
-}
+}#}}}
+######################
+#mp sub: save_cdna
+#mp saves cdna in cdna output file for Karen, idk what for :o)
+sub save_cdna {#{{{
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
+	my $self = shift;
+	my $hmm_id = shift;
+	my $refspec_id = shift;
+	my $est_id = shift;
+	my $cdnafile = $cdna_dir . '/' . $hmm_id . '.cdna.fa';
+	my @cdna_tmp;
+	#mp search for the cdna part of the exonerate output, save in @cdna_tmp
+	for (my $i = 0; $i < $self->{gw_count}; $i++) {
+		if ($self->{gw}->[$i] =~ />.*_cdna$/) {	#mp corrected regex
+			print '$self->{gw}->[$i] is: ' , $self->{gw}->[$i], "\n" if $debug;
+			while ($self->{gw}->[$i] !~ '//') {
+				push @cdna_tmp, $self->{gw}->[$i];
+				$i++;
+			}
+			last; # end the for loop since nothing left to be done
+		}
+	}
+	
+	#mp cdna fasta header
+	$cdna_tmp[0] =~ s/^.*$/>$hmm_id\|$refspec_id\|$taxon_global\|$est_id\_cdna/x;
+	#mp open file or exit sub unsuccessfully
+	open(my $cdna_outfh, '>', $cdnafile) 
+		or return 0;
+	print $cdna_outfh join("\n", @cdna_tmp);
+	#mp close file or exit sub unsuccessfully
+	close $cdna_outfh
+		or return 0;
+	print "Saved cdna to $cdnafile\n" if $debug;
+	print join(" ", (caller(0))[0..3]), " leaving\n" if $debug;
+	return 1;
+}#}}}
+#mp end sub save_cdna
 
-#mp Documentation moved to the bottom for better readability
+#mp Documentation moved to the bottom for improved readability
 
-# DATE: Wed Dec 19 10:41:09 CEST 2007
+# DATE: Wed Dec 19 10:41:09 CEST 2007#{{{
 # Date last modified: 
 	##23. 07. 2010: found a bug in the extraction of the
 	## hmm hit sequence from the sequence_file. A end-of-line char was missing.
@@ -1287,10 +1344,11 @@ sub determineRefspecFinal {
 	
 	## 27.06.2011
 	## 1) Extension: I added the option to run a true reciprocal best hit search. Only the best hit from the
-	## hmmer search is used to check for reciprocity.
+	## hmmer search is used to check for reciprocity.#}}}
 
 #mp converted helpmessage to POD
 
+=pod#{{{
 =head1 USAGE: hamstrsearch_local.pl -sequence_file=<> -hmmset=<> -taxon=<>  -refspec=<> [-est|-protein] [-hmm=<>] [-representative] [-h]
 
 
@@ -1377,4 +1435,4 @@ sets the path where the blast-dbs are located. Per default this is ../blast_dir.
 
 This program is freely distributed under a GPL. See -version for more info.
 Copyright (c) GPL limited: portions of the code are from separate copyrights
-=cut
+=cut#}}}

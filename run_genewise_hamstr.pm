@@ -1,7 +1,7 @@
 package run_genewise_hamstr;
 use strict;
-my $verbose = 1 if $main::verbose;
-$ENV{'WISECONFIGDIR'} =  "/home/malty/thesis/packages/wise2.2.0/wisecfg";
+my $debug = 1;
+$ENV{'WISECONFIGDIR'} =  "../wisecfg";
 # this module runs genewise on a DNA sequence and a protein sequence
 # and then allows to parse this result.
 # the constructor creates an object containing a reference to an array
@@ -10,8 +10,8 @@ $ENV{'WISECONFIGDIR'} =  "/home/malty/thesis/packages/wise2.2.0/wisecfg";
 # LAST Modified: 11.01.2010 renamed the file names for the genewise run to avoid overwriting of files when multipe runs are performed in parallel on the same sequence file
 
 1;
-sub new {	#mp creates a new instance of a genewise result object
-	print join(" ", (caller(0))[0..3]), "\n" if $verbose;
+sub new {	#mp creates a new instance of a genewise result object#{{{
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self_tmp = [];
 	my $self;
 	my ($class, $dna, $prot, $path) = @_;	#mp $prot ^= $refseq
@@ -52,11 +52,11 @@ sub new {	#mp creates a new instance of a genewise result object
 	$self->{indels} = _GetIndels($self_tmp);
 	bless ($self, $class);
 	return $self;
-}
+}#}}}
 #################
 ## sub score extract the score for the alignment
-sub score {
-	print join(" ", (caller(0))[0..3]), "\n" if $verbose;
+sub score {#{{{
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
 	my $score;
 	for (my $i = 0; $i < $self->{gw_count}; $i ++) {
@@ -66,11 +66,11 @@ sub score {
 		}
 	}
 	return ($score);
-}
+}#}}}
 ##################
 #mp this function is never called?!
-sub protein {
-	print join(" ", (caller(0))[0..3]), "\n" if $verbose;
+sub protein {#{{{
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
 	my $gw = $self->{gw};
 	my $prot = '';
@@ -89,10 +89,10 @@ sub protein {
 		}
 	}
 	return($prot);
-}
+}#}}}
 ##################
-sub translation {
-	print join(" ", (caller(0))[0..3]), "\n" if $verbose;
+sub translation {#{{{
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
 	my $finish = 0;
 	my $translated_seq = '';
@@ -102,7 +102,7 @@ sub translation {
 	for (my $i = 0; $i < $self->{gw_count}; $i++) {
 		#if ($self->{gw}->[$i] =~ />.*.tr/) {# a translated bit starts #mp !!regex will also match ">424324_bartralle.sp" because the . is not escaped :P 
 		if ($self->{gw}->[$i] =~ />.*\.tr/) {	#mp corrected regex
-			print $self->{gw}->[$i], "\n" if $verbose;
+			print $self->{gw}->[$i], "\n" if $debug;
 			while ($self->{gw}->[$i] !~ '//') {
 				push @transtmp, $self->{gw}->[$i];
 				$i++;
@@ -110,7 +110,6 @@ sub translation {
 			last; # end the for loop since nothing left to be done
 		}
 	}
-	exit;	#mp
 	
 	## step two: get the sequences
 	my $count = -1;
@@ -143,11 +142,11 @@ sub translation {
 		}
 	}
 	return($translated_seq);
-}
+}#}}}
 
 ##################
-sub codons {
-	print join(" ", (caller(0))[0..3]), "\n" if $verbose;
+sub codons {#{{{
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
 	my $finish = 0;
 	my $codon_seq = '';
@@ -180,13 +179,15 @@ sub codons {
 			$transtmp[$i] =~ tr/a-z/A-Z/;
 			$trans->[$count]->{seq} .= $transtmp[$i];
 		}
-	}
+	}	#mp $count never exceeds 1 because there is never more than one .sp seq in the genewise output
 
 	## step 3: connect the fragments
 	if (@$trans == 1) {
+		print '@$trans is 1, only one seq', "\n" if $debug;
 		$codon_seq = $trans->[0]->{seq};
 	}
-	else {
+	else {	#mp under what circumstances is there more than one target seq in the genewise/exonerate output?
+		print '@$trans is not 1, more than one seq', "\n" if $debug;
 		for (my $i = 0; $i < @$trans; $i++) {
 			$codon_seq .= $trans->[$i]->{seq};
 			if ($i < (@$trans - 1)) {
@@ -214,44 +215,44 @@ sub codons {
 		}
 	}
 	return ($codon_seq);
-}
+}#}}}
 ###########################
-sub protein_borders {
-	print join(" ", (caller(0))[0..3]), "\n" if $verbose;
+sub protein_borders {#{{{
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my $self = shift;
   my $gw = $self->{gw};
   for (my $i = 0; $i < @$gw; $i++) {
     if ($gw->[$i] =~ /Bits.*introns$/) {
       #my ($start, $end) = $gw->[$i+1] =~ /.*$self->{protname}\s{1,}([0-9]{1,})\s{1,}([0-9]{1,}).*/;	#mp useless use of quantifying braces in regex
       my ($start, $end) = $gw->[$i+1] =~ /.*$self->{protname}\s+([0-9]+)\s+([0-9]+).*/;	#mp made regex more clear
-			print join(" ", (caller(0))[0..3]), ", leaving\n" if $verbose;
+			print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
       return($start, $end);
     }
     else {
       die "no protein-start and end could not be determnined. Check genewise command\n";
     }
   }
-}
+}#}}}
 ##########################
-sub cdna_borders {
-	print join(" ", (caller(0))[0..3]), "\n" if $verbose;
+sub cdna_borders {#{{{
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my $self = shift;
   my $gw = $self->{gw};
   for (my $i = 0; $i < @$gw; $i++) {
     if ($gw->[$i] =~ /Bits.*introns$/) {
       #my ($start, $end) = $gw->[$i+1] =~ /.*$self->{dnaname}\s{1,}([0-9]{1,})\s{1,}([0-9]{1,}).*/;	#mp useless use of quantifying braces in regex
       my ($start, $end) = $gw->[$i+1] =~ /.*$self->{dnaname}\s+([0-9]+)\s+([0-9]+).*/;	#mp made regex more clear
-			print join(" ", (caller(0))[0..3]), ", leaving\n" if $verbose;
+			print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
       return($start, $end);
     }
     else {
       die "no cdna-start and end could not be determnined. Check genewise command\n";
     }
   }
-}
+}#}}}
 ##########################
-sub _GetIndels {
-	print join(" ", (caller(0))[0..3]), "\n" if $verbose;
+sub _GetIndels {#{{{
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my $gw = shift;
   my $indel;
   for (my $i = 0; $i < @$gw; $i++) {
@@ -263,4 +264,4 @@ sub _GetIndels {
       return($indel);
     }
   }
-}
+}#}}}
