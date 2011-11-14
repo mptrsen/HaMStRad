@@ -131,56 +131,56 @@ close LOG;
 exit;
 ########################## start sub ################
 sub checkIds {
-    my $message;
-    my $check = 1;
-    my $cont = 1;
-    my $counter;
-    ## Everything up to the first whitespace
-    ## in the fasta header will be taken as sequence id by bioperl. If this
-    ## id contains a '|' and $trunc is set to 1 (default), the ids may no longer
-    ## be unique. This will be checked and if necessary the id will not be truncated
-    ## for $check == 0, the truncated version of the id will be checked (only if $trunc == 1)
-    ## for $check == 1, the complete id will be checked
-    ## for $check == 2, the first 20 characters of the concatenated id and description
-    ## will be checked
-    if ($trunc == 1) {
-	$check = 0;
-    }
-    
-    while ($check < 3 and $cont == 1) {
-	$cont = 0;
-	for (my $i=0; $i < @seq_object; $i++) {
-	    my $id = $seq_object[$i]->display_id;
-	    $id =~ s/(.{0,$limit}).*/$1/;
-	    if ($check == 0) {
-		$id =~ s/|.*//;
-	    }
-	    elsif ($check == 2) {
-		$id = $id . '_' . $seq_object[$i]->desc;
-		$id =~ s/(.{0,$limit}).*/$1/;
-	    }
-	    if (defined $counter->{$id}) {
-		if ($check == 0) {
-		    $message = "trying next without truncating the id";
-		}
-		elsif ($check == 1) {
-		    $message = 'trying next to include sequence description';
-		}
-		else {
-		    $message = "Sequence identifier are not unique, using the first 20 characters. Aborting...";
-		}
-		print LOG "sequence ids are not unique in the file $infile, $message. The offending identfier is $id\n\n";
-		$check ++;
-		$cont = 1;
-		$counter = undef;
-		last;
-	    }
-	    else {
-		$counter->{$id} = 1;
-		$seq_object[$i]->{finalid} = $id;
-	    }
+	my $message;
+	my $check = 1;
+	my $cont = 1;
+	my $counter;
+	## Everything up to the first whitespace
+	## in the fasta header will be taken as sequence id by bioperl. If this
+	## id contains a '|' and $trunc is set to 1 (default), the ids may no longer
+	## be unique. This will be checked and if necessary the id will not be truncated
+	## for $check == 0, the truncated version of the id will be checked (only if $trunc == 1)
+	## for $check == 1, the complete id will be checked
+	## for $check == 2, the first 20 characters of the concatenated id and description
+	## will be checked
+	if ($trunc == 1) {
+		$check = 0;
 	}
-    }
-    ## return the value of $cont. If this is 1, then the sequence id check has failed. 
-    return($message, $cont, $check);
+    
+	while ($check < 3 and $cont == 1) {
+		$cont = 0;
+		for (my $i=0; $i < @seq_object; $i++) {
+			my $id = $seq_object[$i]->display_id;
+			$id =~ s/(.{0,$limit}).*/$1/;
+			if ($check == 0) {
+				$id =~ s/|.*//;
+			}
+			elsif ($check == 2) {
+				$id = $id . '_' . $seq_object[$i]->desc;
+				$id =~ s/(.{0,$limit}).*/$1/;
+			}
+			if (defined $counter->{$id}) {
+				if ($check == 0) {
+					$message = "trying next without truncating the id";
+				}
+				elsif ($check == 1) {
+					$message = 'trying next to include sequence description';
+				}
+				else {
+					$message = "Sequence identifier are not unique, using the first 20 characters. Aborting...";
+				}
+				print LOG "sequence ids are not unique in the file $infile, $message. The offending identfier is $id\n\n";
+				$check ++;
+				$cont = 1;
+				$counter = undef;
+				last;
+			}
+			else {
+				$counter->{$id} = 1;
+				$seq_object[$i]->{finalid} = $id;
+			}
+		}
+	}
+	## return the value of $cont. If this is 1, then the sequence id check has failed. 
+	return($message, $cont, $check);
 }

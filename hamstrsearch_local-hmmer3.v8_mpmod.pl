@@ -387,33 +387,33 @@ sub checkInput {#{{{
     $check = 0;
   }
   else {
-   if ($estflag) {
-      $estfile = $dbfile;
-      $dbfile = "$dbfile.tc";
- 
-      push @log, "HaMStR will run on the ESTs in $estfile";
-      push @log, "Translating ESTs";
-      if (!(-e "$dbfile")) {
-	print "translating $estfile, this may take a while\n";
-  	`../bin/translate.pl -in=$estfile -out=$dbfile`;
-	open (LOG, "hamstrsearch.log");
-	my @info = <LOG>;
-	@log = (@log, @info);
-	close LOG;
-      }
-      else {
-	push @log, "Translated file already exists, using this one\n";
-      }
-      if (! -e "$dbfile") {
-	push @log, "The translation of $estfile failed. Check the script translate.pl";
-	print "failed\n";
-	$check = 0;
-      }
-    }
-    else {
-      ## file type is protein
-      print "succeeded\n";
-    }
+		if ($estflag) {
+			$estfile = $dbfile;
+			$dbfile = "$dbfile.tc";
+	 
+			push @log, "HaMStR will run on the ESTs in $estfile";
+			push @log, "Translating ESTs";
+			if (!(-e "$dbfile")) {
+				print "translating $estfile, this may take a while\n";
+				`../bin/translate.pl -in=$estfile -out=$dbfile`;
+				open (LOG, "hamstrsearch.log");
+				my @info = <LOG>;
+				@log = (@log, @info);
+				close LOG;
+			}
+			else {
+				push @log, "Translated file already exists, using this one\n";
+			}
+			if (! -e "$dbfile") {
+				push @log, "The translation of $estfile failed. Check the script translate.pl";
+				print "failed\n";
+				$check = 0;
+			}
+		}
+		else {
+				## file type is protein
+				print "succeeded\n";
+		}
   }
   ## 2) Check for presence of blastall
   print "Checking for the blast program\t";
@@ -1270,7 +1270,7 @@ sub determineRefspecFinal {#{{{
 }#}}}
 ######################
 #mp sub: save_cdna
-#mp saves cdna in cdna output file for Karen, idk what for :o)
+#mp saves cdna in cdna output file 
 sub save_cdna {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
