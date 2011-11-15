@@ -99,6 +99,7 @@ my $bhh;
 my $exhaustive;
 my $debug;
 my $use_exonerate;
+my $skipcount;
 
 
 if (@ARGV==0) {
@@ -336,7 +337,7 @@ if (@seqs2store > 0) {
 else {
   print "no hits found\n";
 }
-print "Done!\n";
+print "Done! $skipcount couples skipped during exonerate post-processing.\n";
 exit;
 
 ##################### start subs ###############
@@ -914,7 +915,8 @@ sub predictORF {#{{{
 			#mp Skip a couple if exonerate doesn't return anything 
 			#mp most likely if it has been handed an empty prot sequence (for whatever reason)
 			if ($gw->{gw_count} == 0) {
-				warn "$ids[$j] and ", $gw->{protname}, " returned an empty exonerate result, skipping this couple\n";
+				++$skipcount;
+				warn "$ids[$j] and ", $gw->{protname}, " returned an empty exonerate result, skipping this couple ($skipcount skipped so far).\n";
 				next TAXON;
 			}
 			#mp end skip couple
