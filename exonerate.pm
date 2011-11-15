@@ -6,7 +6,7 @@ my $debug = 1;
 
 sub new {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
-	my $self_tmp = [];
+	my $self_tmp = [ ];
 	my $self;
 	my ($class, $dna, $prot, $path) = @_;
 	$path = '/tmp' unless defined $path;
@@ -17,11 +17,10 @@ sub new {#{{{
 
 	# some exonerate options, to be configured later (TODO)
 	my $exonerate_model = $exhaustive ? 'protein2genome:bestfit' : 'protein2genome';
-	my $exonerate_exhaustive = $exhaustive ? '--exhaustive 2> /dev/null' : '';
+	my $exonerate_exhaustive = $exhaustive ? '--exhaustive yes' : '';
 	# roll your own output for exonerate
 	my $exonerate_ryo = "Score: %s\n%V\n>%qi_%ti_[%tcb-%tce]_cdna\n%tcs//\n>%qi[%qab:%qae]_query\n%qas//\n>%ti[%tab:%tae]_target\n%tas//\n";
-	my $exonerate_cmd = "exonerate --ryo '$exonerate_ryo' $exonerate_exhaustive --model $exonerate_model --verbose 0 --showalignment no --showvulgar no";
-	my $translate_cmd = "fastatranslate -F 1";
+	my $exonerate_cmd = "exonerate --ryo '$exonerate_ryo' --model $exonerate_model --verbose 0 --showalignment no --showvulgar no $exonerate_exhaustive $path/$protname $path/$dnaname 2> /dev/null";
 
 	# print the two seqs to files in path
 	open(my $dnafh, ">$path/$dnaname") or die "Fatal: Could not open $path/$dnaname for writing: $!\n";
@@ -33,14 +32,15 @@ sub new {#{{{
 
 	# now run exonerate on the two sequences!
 	# saving the whole output in an array
-	print 'running: $exonerate_cmd ' . "$path/$protname" . ' ' . "$path/$dnaname" . " 2> /dev/null\n";
-	$self_tmp = [`$exonerate_cmd $path/$protname $path/$dnaname 2> /dev/null`];
+	print "running: $exonerate_cmd\n";
+	$self_tmp = [`$exonerate_cmd`];
+
 	if (scalar @{$self_tmp} == 0) {
 		warn "Warning: Alignment program about to crash later: exonerate returned nothing. Exit code: $?\n" 
 	}
-	foreach (@$self_tmp) {	# remove all newlines from eol
-		chomp;
-	}
+
+	chomp @$self_tmp;	# remove all newlines from eol
+		
 	$self->{gw} = $self_tmp;
 	$self->{gw_count} = scalar @$self_tmp;
 	$self->{nt_seq} = $dna;
