@@ -1,7 +1,7 @@
 package exonerate;
 use strict;
 use Data::Dumper;
-my $exhaustive = 1;
+my $exhaustive = 0;
 my $debug = 1;
 
 sub new {#{{{
@@ -32,7 +32,8 @@ sub new {#{{{
 
 	# now run exonerate on the two sequences!
 	# saving the whole output in an array
-	print "running: $exonerate_cmd\n";
+	print "now running exonerate...\n";
+	print "running: $exonerate_cmd\n" if $debug;
 	$self_tmp = [`$exonerate_cmd`];
 
 	if (scalar @{$self_tmp} == 0) {
@@ -153,7 +154,7 @@ sub translation {#{{{
 				push @transtmp, $self->{gw}->[$i];
 				$i++;
 			}
-			last; # end the for loop since nothing left to be done
+			#last; # end the for loop since nothing left to be done  - wrong! Can be more than one hit, which will be in several blocks
 		}
 	}
 	
@@ -207,7 +208,7 @@ sub codons {#{{{
 				push @transtmp, $self->{gw}->[$i];
 				$i++;
 			}
-			last; # end the for loop since nothing left to be done
+			#last; # DO NOT end the for loop since exonerate output is different than genewise output
 		}
 	}
 	
@@ -228,14 +229,17 @@ sub codons {#{{{
 			$trans->[$count]->{seq} .= $transtmp[$i];
 		}
 	}	# $count never exceeds 1 because there is never more than one target seq in the exonerate output
+		# WRONG! There are instances where exonerate outputs more than one seq!
 
+#TODO output the finished seq somewhere for debugging
 	## step 3: connect the fragments
 	if (@$trans == 1) {
 		print '@$trans is 1, only one seq', "\n" if $debug;
 		$codon_seq = $trans->[0]->{seq};
 	}
 	else {	# under what circumstances is there more than one target seq in the genewise/exonerate output?
-		print '@$trans is not 1, more than one seq', "\n" if $debug;
+					# -> whenever exonerate feels it is necessary
+		print '@$trans is not 1, more than one seq fragment', "\n" if $debug;
 		for (my $i = 0; $i < @$trans; $i++) {
 			$codon_seq .= $trans->[$i]->{seq};
 			if ($i < (@$trans - 1)) {

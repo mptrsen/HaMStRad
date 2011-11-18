@@ -99,7 +99,7 @@ my $bhh;
 my $exhaustive;
 my $debug;
 my $use_exonerate;
-my $skipcount;
+my $skipcount = 0;
 
 
 if (@ARGV==0) {
@@ -276,26 +276,33 @@ for (my $i = 0; $i < @hmms; $i++) {
 					push @newseqs, $protobj->[$j];
 					if ($estflag) {
 						push @newcds, ">$query_name|$taxa[$i]|$idobj->[$j]|$refspecobj->[$j]";
-						push @newcds, $cdsobj->[$j];
+						push @newcds, $cdsobj->[$j];	#mp TODO shit did this obj get assigned the wrong seq?
 					}
 				}
+				print '$fileobj: ', Dumper($fileobj) if $debug;
       }
       my $refs = $co_seqs->{$query_name};
-      for (keys %$refs) {
+      for (keys %$refs) {	#mp apparently only print cds if -est option was selected
 				my $line = ">$query_name|$_|" . $refs->{$_}->{seqid} . "\n" . $refs->{$_}->{seq};
 				push @seqs, $line;
       }
       chomp @seqs;
       print "\n";
       @seqs = (@seqs, @newseqs);	#mp y u no use push() like a sane person
+
+			#mp output
       open (OUT, ">$fa_dir_neu/$query_name.fa");
       print OUT join "\n", @seqs;
       print OUT "\n";
       close OUT;
-      if ($estflag) {
+
+      if ($estflag) {	#mp apparently only print cds if -est option was selected
+
+				#mp more output
 				open (OUT, ">$fa_dir_neu/$query_name.cds.fa");
 				print OUT join "\n", @newcds;
 				close OUT;
+
       }
       for (my $i = 0; $i < @newseqs; $i+= 2) {
 				my $line = $newseqs[$i] . "|" . $newseqs[$i+1];
@@ -839,13 +846,14 @@ sub determineReferences {#{{{
 	$fileobj->{$taxon}->{refseq}->[$hitcount]= $refseq;
 	$fileobj->{$taxon}->{refspec}->[$hitcount] = $refspec;
 	#--------------------------------------------------
-	# #mp added WARNING condition in case some bug prevents refspec from being set (most likely leads to genewise crashing later on)
+	# #mp added WARNING condition in case some bug prevents refspec from being set (most likely leads to genewise/exonerate crashing later on)
 	#-------------------------------------------------- 
 	if (!$refspec) {
 		my $errorfile = $dbfile.'_errors.txt';
-		warn "refspec for query ID $hitname is empty!\nThis is a bug and will probably lead to genewise crashing later. Please report it to the developers.\n";
+		warn "refspec for query ID $hitname is empty!\nThis is a bug and will probably lead to genewise/exonerate crashing later. Please report it to the developers.\n";
 		open(my $errfh, ">>$errorfile") || die "Could not open $errorfile: $!\n";
 		print $errfh scalar(localtime), " Missing refspec for $hitname from hmmsearching with $query_name\n";
+		warn '$fileobj at the time: ', Dumper($fileobj) if $debug;
 		close $errfh || die "Could not close $errorfile: $!\n";
 	}
 	else {
@@ -963,7 +971,7 @@ sub orfRanking {#{{{
   my $idobj = $fileobj->{$spec}->{ids};
 
 	print '$protobj in ', (caller(0))[3], ': ', Dumper($protobj), "\n" if $debug;	#mp added debug output
-	print '$idobj in ', (caller(0))[3], ': ', Dumper($idobj), "\n" if $debug;	#mp debug added output
+	print '$idobj in ', (caller(0))[3], ': ', Dumper($idobj), "\n" if $debug;	#mp added debug output
 
   my $refcluster; ## variables to take the cluster and its id for later analysis
   my $refid;
@@ -991,7 +999,7 @@ sub orfRanking {#{{{
 
 			## run clustalw	#mp
 			print "running '$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log'\n" if $debug;	#mp added debug msg
-			!(`$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running clustalw: $!\n";	#mp added error message
+			!(`$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running $alignmentprog\: $!\n";	#mp added error message
 			## get the alignment score
 			$result->[$i]->{score} =  `grep "Alignment Score" $tmpdir/$pid.ref.log |sed -e 's/[^0-9]//g'`;
 			if (!$result->[$i]->{score}) {
@@ -1289,7 +1297,7 @@ sub save_cdna {#{{{
 				push @cdna_tmp, $self->{gw}->[$i];
 				$i++;
 			}
-			last; # end the for loop since nothing left to be done
+			#last; # end the for loop since nothing left to be done - wrong!
 		}
 	}
 	
