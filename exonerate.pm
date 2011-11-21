@@ -184,7 +184,7 @@ sub translation {#{{{
 			$cdna_seq .= $trans->[$i]->{seq};
 			if ($i < (@$trans - 1)) {
 				my $missing = $trans->[$i+1]->{start} - $trans->[$i]->{end} -1;	#mp never used 
-				$cdna_seq .= 'X';
+				$cdna_seq .= 'NNN';
 			}
 		}
 	}
@@ -326,5 +326,29 @@ sub _GetIndels {#{{{
 	}
 }#}}}
 
+# sub: extract_cdna
+# extracts cdna from the exonerate output
+sub extract_cdna {
+	print join(" ", (caller(0))[0..3]), "\n" if $debug;
+	my $self = shift;
+	my @cdna_tmp;
+	for (my $i = 0; $i < $self->{gw_count}; $i++) {
+		if ($self->{gw}->[$i] =~ />.*_cdna$/) {
+			print 'found cdna in exonerate result, it is: ', $self->{gw}->[$i+1], "\n" if $debug;
+			while ($self->{gw}->[$i] !~ '//') {
+				chomp $self->{gw}->[$i];
+				push @cdna_tmp, $self->{gw}->[$i];
+				$i++;
+			}
+			# the whole thing is problematic, since it concatenates all the cdna seqs into the same list.
+			# this leads to sometimes more than one cdna seq appearing in the cdna output file.
+			# not problematic, concatenating cdna seqs is fully ok.
+		}
+	}
+	# remove all fasta headers, we can craft them ourselves
+	my $cdna = join('', grep( !/^>/, @cdna_tmp ));
+	print "CDNA4: $cdna\n" if $debug;
+	return $cdna;
+}
 # return fuckin' true!
 1;

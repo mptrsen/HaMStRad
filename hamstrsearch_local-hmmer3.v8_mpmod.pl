@@ -78,6 +78,7 @@ my $taxon_global;
 my $fileobj;
 my $fa_dir_neu = '';
 my $cdna_dir = '';
+my $cdnaobj;
 my $gwrefprot;
 my $seqtype;
 my $align;
@@ -173,6 +174,7 @@ for (my $i = 0; $i < @hmms; $i++) {
   my @seqs = qw();
   my @newseqs = qw();## var to contain the sequences to be added to the orthologous cluster
   my @newcds = qw();
+	my @cdna = qw();
   my $hmm = $hmms[$i];
   my $hmmout = $hmm;
   $hmmout =~ s/\.hmm/\.out/;
@@ -264,22 +266,33 @@ for (my $i = 0; $i < @hmms; $i++) {
 				if ($estflag) {
 					push @newcds, ">$query_name|$fileobj->{$taxa[$i]}->{refspec_final}|$taxa[$i]|$fileobj->{$taxa[$i]}->{refid}";
 					push @newcds, $fileobj->{$taxa[$i]}->{refcds};
+					push @cdna, ">$query_name|$fileobj->{$taxa[$i]}->{refspec_final}|$taxa[$i]|$fileobj->{$taxa[$i]}->{refid}_cdna";
+					push @cdna, @{$fileobj->{$taxa[$i]}->{cdna}};
+				print 'fileobj when preparing output: ', Dumper($fileobj) if $debug;	#mp debug info
 				}
       }
       else {
 				my $idobj = $fileobj->{$taxa[$i]}->{ids};
 				my $protobj = $fileobj->{$taxa[$i]}->{prot};
 				my $cdsobj  = $fileobj->{$taxa[$i]}->{cds};
+				#--------------------------------------------------
+				# my $cdnaobj = $fileobj->{$taxa[$i]}->{cdna};
+				#-------------------------------------------------- 
 				my $refspecobj = $fileobj->{$taxa[$i]}->{refspec};
 				for (my $j = 0; $j < @$idobj; $j++) {
 					push @newseqs, ">$query_name|$refspecobj->[$j]|$taxa[$i]|$idobj->[$j]";
 					push @newseqs, $protobj->[$j];
 					if ($estflag) {
 						push @newcds, ">$query_name|$taxa[$i]|$idobj->[$j]|$refspecobj->[$j]";
-						push @newcds, $cdsobj->[$j];	#mp TODO shit did this obj get assigned the wrong seq?
+						push @newcds, $cdsobj->[$j];	#mp don't worry everything is fine
+						#mp start compiling cdna data... I hope it's structured like everything else
+						#--------------------------------------------------
+						# push @cdna, ">$query_name|$taxa[$i]|$idobj->[$j]|$refspecobj->[$j]_cdna";	#mp compile cdna for output
+						# push @cdna, $cdnaobj->[$j];	#mp compile cdna for output
+						#-------------------------------------------------- 
 					}
 				}
-				print '$fileobj: ', Dumper($fileobj) if $debug;
+				print '$fileobj when preparing output: ', Dumper($fileobj) if $debug;
       }
       my $refs = $co_seqs->{$query_name};
       for (keys %$refs) {	#mp apparently only print cds if -est option was selected
@@ -303,6 +316,11 @@ for (my $i = 0; $i < @hmms; $i++) {
 				print OUT join "\n", @newcds;
 				close OUT;
 
+				#mp output cdna to cdna file
+				open (OUT, ">$cdna_dir/$query_name.cdna.fa") or die "Fatal: Could not open $cdna_dir/$query_name\_cdna.fa: $!\n";
+				print OUT join "\n", @cdna;
+				close OUT;
+				#mp end cdna output
       }
       for (my $i = 0; $i < @newseqs; $i+= 2) {
 				my $line = $newseqs[$i] . "|" . $newseqs[$i+1];
@@ -928,25 +946,28 @@ sub predictORF {#{{{
 				next TAXON;
 			}
 			#mp end skip couple
-			#mp before translation, store the cdna in a cdna file for Karen :)
-			if ($use_exonerate) {
-				&save_cdna($gw, $refseq_id, #mp hmm number
-					$refspecobj->[$j],				#mp refspec id
-					$ids[$j],	)								#mp est header
-					or warn "Warning: Could not save cdna: $!\n";
-			}
-			#mp end store cdna
+			#--------------------------------------------------
+			# #mp before translation, store the cdna in a cdna file for Karen :)
+			# if ($use_exonerate) {
+			# 	&save_cdna($gw, $refseq_id, #mp hmm number
+			# 		$refspecobj->[$j],				#mp refspec id
+			# 		$ids[$j],	)								#mp est header
+			# 		or warn "Warning: Could not save cdna: $!\n";
+			# }
+			# #mp end store cdna
+			#-------------------------------------------------- 
 			my $translation = $gw->translation;
 			my $cds = $gw->codons;
 			$translation =~ s/[-!]//g;	#mp deletes gaps and stop codons
 			$fileobj_new->{$taxa[$i]}->{ids}->[$j] = $ids[$j];
 			$fileobj_new->{$taxa[$i]}->{prot}->[$j] = $translation;
 			$fileobj_new->{$taxa[$i]}->{cds}->[$j] = $cds;
+			$fileobj_new->{$taxa[$i]}->{cdna}->[$j] = $gw->extract_cdna;
 			$fileobj_new->{$taxa[$i]}->{refseq}->[$j] = $refseq;
 			$fileobj_new->{$taxa[$i]}->{refspec}->[$j] = $refspec;
 
 			#mp save genewise/exonerate output to file
-			my $gwoutfile = $gw->{protname} . "-" . $gw->{dnaname} . "_$ids[$j]-" . $refseq_id . "_" . $refspec . '.' .$wiseprog . "out";
+			my $gwoutfile = $gw->{protname} . "-" . $gw->{dnaname} . '_' . $refspec . '_' . $refseq_id . "_" . "_$ids[$j]-" . '.' .$wiseprog . "out";
 			my $gwoutput = $gw->{gw};
 			open(my $gwresultfh, ">$tmpdir/$gwoutfile") or die "Could not open for writing: $!\n";
 			print $gwresultfh join("\n", @$gwoutput);
@@ -1042,8 +1063,8 @@ sub sortRef {#{{{
 	open (OUT, ">$tmpdir/$pid.sort") or die "failed to write for sorting\n";
 	print OUT join "\n", @sort;
 	close OUT;
-	`sort -n -t ',' -k 2 $tmpdir/$pid.sort >$tmpdir/$pid.sort.out`;
-	@sort = `less $tmpdir/$pid.sort`;
+	`sort -n -t ',' -k 2 $tmpdir/$pid.sort >$tmpdir/$pid.sort.out`;	#mp how the f*ck can you use the external sort instead of the builtin sort function?!
+	@sort = `less $tmpdir/$pid.sort`;	#mp WTF
 	chomp @sort;
 	$result = undef;
 	for (my $i = 0; $i < @sort; $i++) {
@@ -1289,26 +1310,34 @@ sub save_cdna {#{{{
 	my $est_id = shift;
 	my $cdnafile = $cdna_dir . '/' . $hmm_id . '.cdna.fa';
 	my @cdna_tmp;
+	my $cdna_header;
 	#mp search for the cdna part of the exonerate output, save in @cdna_tmp
 	for (my $i = 0; $i < $self->{gw_count}; $i++) {
 		if ($self->{gw}->[$i] =~ />.*_cdna$/) {	#mp corrected regex
 			print '$self->{gw}->[$i] is: ' , $self->{gw}->[$i], "\n" if $debug;
-			while ($self->{gw}->[$i] !~ '//') {
+			while ($self->{gw}->[$i] !~ m'//') {
 				push @cdna_tmp, $self->{gw}->[$i];
 				$i++;
 			}
 			#last; # end the for loop since nothing left to be done - wrong!
+			# the whole thing is problematic, though, since it concatenates all the cdna seqs into the same list.
+			# this leads to sometimes more than one cdna seq appearing in the cdna output file.
 		}
 	}
 	
+	#mp remove all fasta headers - this is equivalent to concatenating the two cdna fragments
+	#mp let's just hope this doesn't introduce frameshift errors...
+	
+	my @cdna = grep( !/^>/, @cdna_tmp );
+
 	#mp cdna fasta header
-	$cdna_tmp[0] =~ s/^.*$/>$hmm_id\|$refspec_id\|$taxon_global\|$est_id\_cdna/x;
+	$cdna_header = ">$hmm_id\|$refspec_id\|$taxon_global\|$est_id\_cdna";
 	#mp open file or exit sub unsuccessfully
-	open(my $cdna_outfh, '>', $cdnafile) 
+	open(my $CDNA_OUTFH, '>', $cdnafile) 
 		or return 0;
-	print $cdna_outfh join("\n", @cdna_tmp);
+	print $CDNA_OUTFH join("\n", ($cdna_header, @cdna));
 	#mp close file or exit sub unsuccessfully
-	close $cdna_outfh
+	close $CDNA_OUTFH
 		or return 0;
 	print "Saved cdna to $cdnafile\n" if $debug;
 	print join(" ", (caller(0))[0..3]), " leaving\n" if $debug;
