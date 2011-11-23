@@ -19,7 +19,7 @@ sub new {#{{{
 	my $exonerate_model = $exhaustive ? 'protein2genome:bestfit' : 'protein2genome';
 	my $exonerate_exhaustive = $exhaustive ? '--exhaustive yes' : '';
 	# roll your own output for exonerate
-	my $exonerate_ryo = "Score: %s\n%V\n>%qi_%ti_[%tcb-%tce]_cdna\n%tcs//\n>%qi[%qab:%qae]_query\n%qas//\n>%ti[%tab:%tae]_target\n%tas//\n";
+	my $exonerate_ryo = "Score: %s\n%V\n>%qi_%ti_[%tcb:%tce]_cdna\n%tcs//\n>%qi[%qab:%qae]_query\n%qas//\n>%ti[%tab:%tae]_target\n%tas//\n";
 	my $exonerate_cmd = "exonerate --ryo '$exonerate_ryo' --model $exonerate_model --verbose 0 --showalignment no --showvulgar no $exonerate_exhaustive $path/$protname $path/$dnaname 2> /dev/null";
 
 	# print the two seqs to files in path
@@ -51,7 +51,6 @@ sub new {#{{{
 	$self->{get_indel} = 1;
 	$self->{indels} = _GetIndels($self_tmp);
 	$self->{tmpdir} = $path;
-	print '$self:', Dumper($self) if $debug;
 
 	bless($self, $class);
 
@@ -120,6 +119,7 @@ sub translate_cdna {#{{{
 		unless (scalar @$translate_result > 0);
 	warn "Warning: Alignmentprog about to crash later: fastatranslate died: $!"
 		if scalar @{$translate_result} == 0;
+	# for testing
 	#--------------------------------------------------
 	# unlink $cdnatmpfile	# delete temp file
 	# 	or warn "Warning: Could not delete cDNA tmp file $cdnatmpfile: $!";
@@ -130,37 +130,44 @@ sub translate_cdna {#{{{
 	# concatenate lines because some people (including me) like one-liner seqs better 
 	foreach (@$translate_result) {
 		chomp;
-		last if /^>/;
-		$translated_cdna .= $_;
+		# THIS IS where the translated cdna used to not get concatenated because it ends at the 2nd header - therefore the cdna is longer than the AA output
+		# now it does
+		if (/^>/) {
+			print "translating cDNA... next seq\n" if $debug;
+			next;
+		}
+		$translated_cdna .= $_;	
 	}
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
 	return $translated_cdna;
 }#}}}
 
 #mp copypasta from hamstr
-sub translation {#{{{
+sub translation { #{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
 	my $finish = 0;
 	my $cdna_seq = '';
 	my @transtmp;
 
-	## step 1: extract the relevant info from the genewise output
+	## step 1: extract the relevant info from the genewise output#{{{
 	for (my $i = 0; $i < $self->{gw_count}; $i++) {
-		#if ($self->{gw}->[$i] =~ />.*.tr/) {# a translated bit starts #mp !!regex will also match ">424324_bartralle.sp" because the . is not escaped :P 
+		#if ($self->{gw}->[$i] =~ />.*.tr/) # a translated bit starts #mp !!regex will also match ">424324_bartralle.sp" because the . is not escaped :P 
 		if ($self->{gw}->[$i] =~ />.*_cdna$/) {	#mp corrected regex
 			print '$self->{gw}->[$i] is: ' , $self->{gw}->[$i], "\n" if $debug;
 			while ($self->{gw}->[$i] !~ '//') {
 				push @transtmp, $self->{gw}->[$i];
 				$i++;
 			}
-			#last; # end the for loop since nothing left to be done  - wrong! Can be more than one hit, which will be in several blocks
+			# THIS IS where the cdna fragments do not get concatenated
+			last; # end the for loop since nothing left to be done  - wrong! Can be more than one hit, which will be in several blocks; but the cdna must not get concatenated
 		}
-	}
+	}#}}}
 	
-	## step two: get the sequences
+	## step two: get the sequences#{{{
 	my $count = -1;
 	my $trans = [ ];
+	print "now collecting start, end, seq from cdna seq\n" if $debug;
 	for (my $i = 0; $i < scalar @transtmp; $i++) {
 		if ($transtmp[$i] =~ /^>/) {
 			$count++;
@@ -173,25 +180,30 @@ sub translation {#{{{
 		else {
 			$trans->[$count]->{seq} .= $transtmp[$i];
 		}
-	}
+	}#}}}
 
-	## step 3: connect the fragments
+	## step 3: connect the fragments#{{{
 	if (@$trans == 1) {
+		print "only 1 seq during translation of cdna\n" if $debug;
 		$cdna_seq = $trans->[0]->{seq};
-	}
-	else {
+	}#}}}
+
+	else {	# if there are more than one
+		print "more than 1 seq during translation of cdna\n" if $debug;
 		for (my $i = 0; $i < @$trans; $i++) {
-			$cdna_seq .= $trans->[$i]->{seq};
+			if ($trans->[$i+1]->{start} - $trans->[$i]->{end} > 0) {
+				$cdna_seq .= $trans->[$i]->{seq};
+			}
 			if ($i < (@$trans - 1)) {
-				my $missing = $trans->[$i+1]->{start} - $trans->[$i]->{end} -1;	#mp never used 
-				$cdna_seq .= 'NNN';
+				my $missing = $trans->[$i+1]->{start} - $trans->[$i]->{end} -1;	
+				$cdna_seq .= 'NNN' x $missing;	# only append 'NNN' if there is a missing portion
 			}
 		}
 	}
 	my $translated_seq = &translate_cdna($cdna_seq, $self);
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
 	return($translated_seq);
-}#}}}
+} #}}}
 
 #mp copypasta from hamstr
 sub codons {#{{{
@@ -332,9 +344,9 @@ sub extract_cdna {
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
 	my @cdna_tmp;
+	LINE:
 	for (my $i = 0; $i < $self->{gw_count}; $i++) {
 		if ($self->{gw}->[$i] =~ />.*_cdna$/) {
-			print 'found cdna in exonerate result, it is: ', $self->{gw}->[$i+1], "\n" if $debug;
 			while ($self->{gw}->[$i] !~ '//') {
 				chomp $self->{gw}->[$i];
 				push @cdna_tmp, $self->{gw}->[$i];
@@ -342,12 +354,13 @@ sub extract_cdna {
 			}
 			# the whole thing is problematic, since it concatenates all the cdna seqs into the same list.
 			# this leads to sometimes more than one cdna seq appearing in the cdna output file.
-			# not problematic, concatenating cdna seqs is fully ok.
+			# 2011-11-21: not problematic, concatenating cdna seqs is fully ok.
+			# 2011-11-22: problematic, concatenating cdna seqs is no longer ok.
+			last LINE;
 		}
 	}
 	# remove all fasta headers, we can craft them ourselves
 	my $cdna = join('', grep( !/^>/, @cdna_tmp ));
-	print "CDNA4: $cdna\n" if $debug;
 	return $cdna;
 }
 # return fuckin' true!

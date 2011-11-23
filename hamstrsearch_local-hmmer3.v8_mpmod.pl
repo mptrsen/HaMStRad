@@ -165,6 +165,8 @@ else {
   close OUT;
 }
 ### read in of the core-ortholog sequences
+#mp literally, read in the entire core-orthologs fasta file.
+#mp I am so not going to mimic this.
 my $co_seqs = parseSeqfile("$fafile");
 
 ## 2) loop through the hmms
@@ -205,15 +207,16 @@ for (my $i = 0; $i < @hmms; $i++) {
 #	$results[0] = $keep;
 #}
   chomp $query_name;
-  print "Results for HMM $query_name\n";	#mp inserted "HMM"
+  print "Results for HMM $query_name (Hits: ";	#mp inserted "HMM"
+	print join(", ", @results), ")\n" if $debug;	#mp extended report
   my ($check, $refspec_final) = &determineRefspecFinal($query_name, @refspec);
   if ($check == 0) {
     die "error in retrieving refspec data\n";
   }
 	HMMER_RESULT:			#mp added label for loop
-  for (my $k = 0; $k < @results; $k++) {
+  for (my $k = 0; $k < @results; $k++) {	#mp for every hmmsearch result, do the following (perhaps this is where the addtl. cdna seqs come from)
     my $hitname = $results[$k];
-    print "$hitname\n";
+    print "processing hit: $hitname\n";	#mp added report
     my $keep = 0;
     my $hitseq = '';
     $refseq = '';
@@ -236,7 +239,9 @@ for (my $i = 0; $i < @hmms; $i++) {
       ## put the info about the hits into an object for later post-processing
       ### HERE COMES THE NEW STUFF THAT DEALS WITH THE DIFFERENT POSSIBILITIES: STRICT, RELAXED OR WHATEVER...
       $fileobj = &determineReferences ($fileobj, $taxon, $refspec_final, $hitname, $hitseq, $hitcount, $query_name);
+		print Dumper($fileobj) if $debug;
       $hitcount++;
+			print "hitcount: $hitcount\n" if $debug;
 		}
     else {
       print "Reciprocity not fulfilled!\n";
@@ -266,13 +271,14 @@ for (my $i = 0; $i < @hmms; $i++) {
 				if ($estflag) {
 					push @newcds, ">$query_name|$fileobj->{$taxa[$i]}->{refspec_final}|$taxa[$i]|$fileobj->{$taxa[$i]}->{refid}";
 					push @newcds, $fileobj->{$taxa[$i]}->{refcds};
+					#mp added cdna output
 					push @cdna, ">$query_name|$fileobj->{$taxa[$i]}->{refspec_final}|$taxa[$i]|$fileobj->{$taxa[$i]}->{refid}_cdna";
 					push @cdna, @{$fileobj->{$taxa[$i]}->{cdna}};
-				print 'fileobj when preparing output: ', Dumper($fileobj) if $debug;	#mp debug info
+				#mp end added cdna output
 				}
       }
       else {
-				my $idobj = $fileobj->{$taxa[$i]}->{ids};
+				my $idobj = $fileobj->{$taxa[$i]}->{ids};	#mp ids are the seq IDs in the EST file
 				my $protobj = $fileobj->{$taxa[$i]}->{prot};
 				my $cdsobj  = $fileobj->{$taxa[$i]}->{cds};
 				#--------------------------------------------------
@@ -292,7 +298,6 @@ for (my $i = 0; $i < @hmms; $i++) {
 						#-------------------------------------------------- 
 					}
 				}
-				print '$fileobj when preparing output: ', Dumper($fileobj) if $debug;
       }
       my $refs = $co_seqs->{$query_name};
       for (keys %$refs) {	#mp apparently only print cds if -est option was selected
@@ -334,6 +339,7 @@ for (my $i = 0; $i < @hmms; $i++) {
       }
     }	#mp end TAXON
   }
+	print "\n";
 }	#mp end of loop through the hmms
 
 if (@seqs2store > 0) {
@@ -718,32 +724,31 @@ sub check4reciprocity {#{{{
       my $i = 0;
       my $suc = 0; # keeps track of success for a single taxon
       while ($suc == 0 and $i <@hits) {
-	print "blast-hit: $hits[$i]";
-	## now loop through all the refspec-sequences in the hmm file
-	my $j = 0;
-	while ($suc == 0 and $j < @original_ids) {
-	  if ($original_ids[$j] eq $hits[$i]) {
-	    print "\thitting\n";
-	    $refspec_final->[$k]->{hit} = $j;
-	    $suc = 1;
-	    $relaxed_suc = 1;
-	  }
-	  else {
-	    print "\nnot hitting $original_ids[$j]\n";
-	    $j ++;
-	  }
-	  if ($suc == 1) {
-	    $relaxed_suc = 1;
-	    if ($strict_suc == -1) {
-	      $strict_suc = 1;
-	    }
-	  }
-	}
-	$i++;
+				print "blast-hit: $hits[$i]";
+				## now loop through all the refspec-sequences in the hmm file
+				my $j = 0;
+				while ($suc == 0 and $j < @original_ids) {
+					if ($original_ids[$j] eq $hits[$i]) {
+						print "\thitting\n";
+						$refspec_final->[$k]->{hit} = $j;
+						$suc = 1;
+						$relaxed_suc = 1;
+					}
+					else {
+						print "\nnot hitting $original_ids[$j]\n";
+						$j ++;
+					}
+					if ($suc == 1) {
+						$relaxed_suc = 1;
+						if ($strict_suc == -1) {
+							$strict_suc = 1;
+						}
+					}
+				}
+			$i++;
       }
       if ($suc == 0) {
-	$strict_suc = 0; # none of the blast hits matched against the
-	# the reftaxon seq
+				$strict_suc = 0; # none of the blast hits matched against the reftaxon seq
       }
     }
     else {
@@ -871,7 +876,6 @@ sub determineReferences {#{{{
 		warn "refspec for query ID $hitname is empty!\nThis is a bug and will probably lead to genewise/exonerate crashing later. Please report it to the developers.\n";
 		open(my $errfh, ">>$errorfile") || die "Could not open $errorfile: $!\n";
 		print $errfh scalar(localtime), " Missing refspec for $hitname from hmmsearching with $query_name\n";
-		warn '$fileobj at the time: ', Dumper($fileobj) if $debug;
 		close $errfh || die "Could not close $errorfile: $!\n";
 	}
 	else {
@@ -880,7 +884,6 @@ sub determineReferences {#{{{
 	#--------------------------------------------------
 	# #mp end add WARNING condition
 	#-------------------------------------------------- 
-	print 'fileobj: ', Dumper($fileobj) if $debug;
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
 	return($fileobj);
 }#}}}
@@ -890,8 +893,13 @@ sub processHits {#{{{
   my ($fileobj) = @_; 
   ## 1) align all hit sequences for a taxon against the reference species
   my @taxa = keys(%$fileobj);
+#mp let's just test what happens if we only align ONE hit against the refspec
   for (my $i = 0; $i < @taxa; $i++) {
-    &orfRanking($taxa[$i]) if $fileobj->{$taxa[$i]}->{prot};
+		if ($fileobj->{$taxa[$i]}->{prot}) {
+			print "$taxa[$i] has prot defined, doing orfRanking...\n" if $debug;
+			&orfRanking($taxa[$i]);
+			last;
+		}
   }
 }  #}}}
   
@@ -922,7 +930,7 @@ sub predictORF {#{{{
 			#mp removed "\\b" from regex and added info line
 			#mp this regex would almost never work because headers are not trimmed anymore
 			print "running: \"grep -A 1 \">$ids[$j]\" $estfile |tail -n 1\"\n" if $debug;
-			my $est = `grep -A 1 ">$ids[$j]" $estfile |tail -n 1`;
+			my $est = `grep -A 1 ">$ids[$j]" $estfile |tail -n 1`;	#mp get the sequence from the EST file
 			if (! $est) {
 				die "error in retrieval of est sequence for $ids[$j] in subroutine processHits\n";
 			}
@@ -937,7 +945,6 @@ sub predictORF {#{{{
 			# TODO why are $refspec and $refseq sometimes left empty?
 			#mp run either exonerate or genewise, depending on invocation
 			my $gw = ($use_exonerate) ? exonerate->new($est, $refseq, "$tmpdir") : run_genewise_hamstr->new($est, $refseq, "$tmpdir");
-			print 'gw object after generation: ' , Dumper($gw), "\n" if $debug;	#mp debug info
 			#mp Skip a couple if exonerate doesn't return anything 
 			#mp most likely if it has been handed an empty prot sequence (for whatever reason)
 			if ($gw->{gw_count} == 0) {
@@ -946,16 +953,6 @@ sub predictORF {#{{{
 				next TAXON;
 			}
 			#mp end skip couple
-			#--------------------------------------------------
-			# #mp before translation, store the cdna in a cdna file for Karen :)
-			# if ($use_exonerate) {
-			# 	&save_cdna($gw, $refseq_id, #mp hmm number
-			# 		$refspecobj->[$j],				#mp refspec id
-			# 		$ids[$j],	)								#mp est header
-			# 		or warn "Warning: Could not save cdna: $!\n";
-			# }
-			# #mp end store cdna
-			#-------------------------------------------------- 
 			my $translation = $gw->translation;
 			my $cds = $gw->codons;
 			$translation =~ s/[-!]//g;	#mp deletes gaps and stop codons
@@ -971,12 +968,10 @@ sub predictORF {#{{{
 			my $gwoutput = $gw->{gw};
 			open(my $gwresultfh, ">$tmpdir/$gwoutfile") or die "Could not open for writing: $!\n";
 			print $gwresultfh join("\n", @$gwoutput);
-			print "Wrote $wiseprog output to $tmpdir/$gwoutfile\:\n", Dumper($gwoutput),"\n" if $debug;	#mp added debug msg
 			close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
 			#mp end save genewise/exonerate output 
 		}
   }
-	print 'fileobj after sub predictORF: ', Dumper($fileobj) if $debug;	#mp added debug info
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp added debug info
   return($fileobj_new);
 }#}}}
@@ -991,8 +986,6 @@ sub orfRanking {#{{{
   my $protobj = $fileobj->{$spec}->{prot};
   my $idobj = $fileobj->{$spec}->{ids};
 
-	print '$protobj in ', (caller(0))[3], ': ', Dumper($protobj), "\n" if $debug;	#mp added debug output
-	print '$idobj in ', (caller(0))[3], ': ', Dumper($idobj), "\n" if $debug;	#mp added debug output
 
   my $refcluster; ## variables to take the cluster and its id for later analysis
   my $refid;
@@ -1199,6 +1192,7 @@ sub parseHmmer3 {#{{{
   }
 }#}}}
 #####################
+#mp this sub reads the entire core-orthologs file into memory!
 sub parseSeqfile {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
   my $seqref;
@@ -1213,11 +1207,11 @@ sub parseSeqfile {#{{{
   chomp @seqs;
   for (my $i = 0; $i < @seqs; $i++) {
     if ($seqs[$i] =~ />/) {
-	$seqs[$i] =~ s/>//;
+			$seqs[$i] =~ s/>//;
       if (defined $id and defined $seq) {
-	$seqref->{$id}->{$spec}->{seqid} = $seqid;
-	$seqref->{$id}->{$spec}->{seq} = $seq;
-	$seq = undef;
+				$seqref->{$id}->{$spec}->{seqid} = $seqid;
+				$seqref->{$id}->{$spec}->{seq} = $seq;
+				$seq = undef;
       }
       ($id, $spec, $seqid) = split (/\|/, $seqs[$i]);
     }
@@ -1226,9 +1220,9 @@ sub parseSeqfile {#{{{
     }
   }
   if (defined  $id and defined $seq) {
-	$seqref->{$id}->{$spec}->{seqid} = $seqid;
-	$seqref->{$id}->{$spec}->{seq} = $seq;
-	$seq = undef;
+		$seqref->{$id}->{$spec}->{seqid} = $seqid;
+		$seqref->{$id}->{$spec}->{seq} = $seq;
+		$seq = undef;
 	}
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
   return ($seqref);
@@ -1302,6 +1296,7 @@ sub determineRefspecFinal {#{{{
 ######################
 #mp sub: save_cdna
 #mp saves cdna in cdna output file 
+#mp no longer called
 sub save_cdna {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
