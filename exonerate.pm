@@ -47,6 +47,7 @@ sub new {#{{{
 	$self->{nt_seq} = $dna;
 	$self->{prot_seq} = $prot;
 	$self->{protname} = $protname;
+
 	$self->{dnaname} = $dnaname;
 	$self->{get_indel} = 1;
 	$self->{indels} = _GetIndels($self_tmp);

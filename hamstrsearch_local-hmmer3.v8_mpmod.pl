@@ -67,7 +67,7 @@ my $idfile;
 my $taxon_check = 0;
 my $hmmset;
 my $hmmsearch_dir;
-my $dbfile = ''; # the file hmmsearch is run against
+my $dbfile = ''; # the file hmmsearch is run against #mp (the EST file)
 my $dbfile_short;
 my $taxon_file;
 my $refspec_string;
@@ -176,7 +176,7 @@ for (my $i = 0; $i < @hmms; $i++) {
   my @seqs = qw();
   my @newseqs = qw();## var to contain the sequences to be added to the orthologous cluster
   my @newcds = qw();
-	my @cdna = qw();
+	my @newcdna = qw();	#mp added newcdna array: stores cdna for output
   my $hmm = $hmms[$i];
   my $hmmout = $hmm;
   $hmmout =~ s/\.hmm/\.out/;
@@ -238,10 +238,10 @@ for (my $i = 0; $i < @hmms; $i++) {
       }
       ## put the info about the hits into an object for later post-processing
       ### HERE COMES THE NEW STUFF THAT DEALS WITH THE DIFFERENT POSSIBILITIES: STRICT, RELAXED OR WHATEVER...
+			#mp the fileobj is defined here
       $fileobj = &determineReferences ($fileobj, $taxon, $refspec_final, $hitname, $hitseq, $hitcount, $query_name);
-		print Dumper($fileobj) if $debug;
       $hitcount++;
-			print "hitcount: $hitcount\n" if $debug;
+			print "Reciprocity fulfilled. hitcount: $hitcount\n" if $debug;	#mp 
 		}
     else {
       print "Reciprocity not fulfilled!\n";
@@ -249,10 +249,12 @@ for (my $i = 0; $i < @hmms; $i++) {
   }	#mp end HMMER_RESULT
 
   ## 5) do the rest only if at least one hit was obtained
+	#mp i.e. if the reciprocity criterion is fulfilled
   if (defined $fileobj) {
 
     ## 5a) if the hits are derived from ESTs, get the best ORF
     if ($estflag) {
+		#mp the fileobj is modified here, exonerate/genewise is run
       $fileobj =  &predictORF($query_name);	#mp added arg: refseq id that belongs to this queryseq
     }
 
@@ -272,9 +274,9 @@ for (my $i = 0; $i < @hmms; $i++) {
 					push @newcds, ">$query_name|$fileobj->{$taxa[$i]}->{refspec_final}|$taxa[$i]|$fileobj->{$taxa[$i]}->{refid}";
 					push @newcds, $fileobj->{$taxa[$i]}->{refcds};
 					#mp added cdna output
-					push @cdna, ">$query_name|$fileobj->{$taxa[$i]}->{refspec_final}|$taxa[$i]|$fileobj->{$taxa[$i]}->{refid}_cdna";
-					push @cdna, @{$fileobj->{$taxa[$i]}->{cdna}};
-				#mp end added cdna output
+					push @newcdna, ">$query_name|$fileobj->{$taxa[$i]}->{refspec_final}|$taxa[$i]|$fileobj->{$taxa[$i]}->{refid}";
+					push @newcdna, $fileobj->{$taxa[$i]}->{refcdna};
+					#mp end added cdna output
 				}
       }
       else {
@@ -323,7 +325,7 @@ for (my $i = 0; $i < @hmms; $i++) {
 
 				#mp output cdna to cdna file
 				open (OUT, ">$cdna_dir/$query_name.cdna.fa") or die "Fatal: Could not open $cdna_dir/$query_name\_cdna.fa: $!\n";
-				print OUT join "\n", @cdna;
+				print OUT join "\n", @newcdna;
 				close OUT;
 				#mp end cdna output
       }
@@ -907,30 +909,30 @@ sub processHits {#{{{
 ################
 sub predictORF {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
-	my $refseq_id = shift;	#mp refseq id that was assigned to this queryseq id
+	my $query_name = shift;	#mp HMM name
   my $fileobj_new;
-  my @taxa = keys(%$fileobj);
+  my @taxa = keys(%$fileobj);	#mp the taxa that you are hamstring -> normally only one
 
-	TAXON:
+	TAXON:	#mp labelled the loop
   for (my $i = 0; $i < @taxa; $i++) {
-    my $protobj = $fileobj->{$taxa[$i]}->{prot};
-    my $idobj = $fileobj->{$taxa[$i]}->{ids};
-    my $refseqobj = $fileobj->{$taxa[$i]}->{refseq};
-    my $refspecobj = $fileobj->{$taxa[$i]}->{refspec};
+    my $protobj 		= $fileobj->{$taxa[$i]}->{prot};		#mp indented
+    my $idobj 			= $fileobj->{$taxa[$i]}->{ids};			#mp indented
+    my $refseqobj 	= $fileobj->{$taxa[$i]}->{refseq};	#mp indented
+    my $refspecobj 	= $fileobj->{$taxa[$i]}->{refspec};	#mp indented
     my @ids = @$idobj;
 
-		ID:
+		ID:	#mp labelled the loop. These are the individual sequences from the EST file that produced a hmmsearch hit. For each, do:
     for (my $j = 0; $j < @ids; $j++) {
 			my $refseq = $refseqobj->[$j];
 			my $refspec = $refspecobj->[$j];
-			## determine the reading frame
+			## determine the reading frame and remove the info from the ID
 			my ($rf) = $ids[$j] =~ /.*_RF([0-9]+)/;
 			print "rf is $rf\n";
 			$ids[$j] =~ s/_RF.*//;
 			#mp removed "\\b" from regex and added info line
 			#mp this regex would almost never work because headers are not trimmed anymore
 			print "running: \"grep -A 1 \">$ids[$j]\" $estfile |tail -n 1\"\n" if $debug;
-			my $est = `grep -A 1 ">$ids[$j]" $estfile |tail -n 1`;	#mp get the sequence from the EST file
+			my $est = `grep -A 1 ">$ids[$j]" $estfile |tail -n 1`;	#mp get the sequence from the original EST file
 			if (! $est) {
 				die "error in retrieval of est sequence for $ids[$j] in subroutine processHits\n";
 			}
@@ -945,11 +947,21 @@ sub predictORF {#{{{
 			# TODO why are $refspec and $refseq sometimes left empty?
 			#mp run either exonerate or genewise, depending on invocation
 			my $gw = ($use_exonerate) ? exonerate->new($est, $refseq, "$tmpdir") : run_genewise_hamstr->new($est, $refseq, "$tmpdir");
+
+			#mp save genewise/exonerate output to file
+			my $gwoutfile = $gw->{protname} . "-" . $gw->{dnaname} . '_' . $refspec . '_' . $query_name . "_" . "_$ids[$j]-" . '.' .$wiseprog . "out";
+			my $gwoutput = $gw->{gw};
+			open(my $gwresultfh, ">$tmpdir/$gwoutfile") or die "Could not open for writing: $!\n";
+			print $gwresultfh join("\n", @$gwoutput);
+			close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
+			print "Wrote exonerate output to $gwoutfile\n" if $debug;
+			#mp end save genewise/exonerate output 
+
 			#mp Skip a couple if exonerate doesn't return anything 
 			#mp most likely if it has been handed an empty prot sequence (for whatever reason)
 			if ($gw->{gw_count} == 0) {
 				++$skipcount;
-				warn "$ids[$j] and ", $gw->{protname}, " returned an empty exonerate result, skipping this couple ($skipcount skipped so far).\n";
+				print "$ids[$j] and $query_name|$refspec returned an empty exonerate result, skipping this couple ($skipcount skipped so far).\n";
 				next TAXON;
 			}
 			#mp end skip couple
@@ -962,14 +974,6 @@ sub predictORF {#{{{
 			$fileobj_new->{$taxa[$i]}->{cdna}->[$j] = $gw->extract_cdna;
 			$fileobj_new->{$taxa[$i]}->{refseq}->[$j] = $refseq;
 			$fileobj_new->{$taxa[$i]}->{refspec}->[$j] = $refspec;
-
-			#mp save genewise/exonerate output to file
-			my $gwoutfile = $gw->{protname} . "-" . $gw->{dnaname} . '_' . $refspec . '_' . $refseq_id . "_" . "_$ids[$j]-" . '.' .$wiseprog . "out";
-			my $gwoutput = $gw->{gw};
-			open(my $gwresultfh, ">$tmpdir/$gwoutfile") or die "Could not open for writing: $!\n";
-			print $gwresultfh join("\n", @$gwoutput);
-			close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
-			#mp end save genewise/exonerate output 
 		}
   }
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp added debug info
@@ -982,10 +986,10 @@ sub orfRanking {#{{{
   my $result;
   my $refprot;
   my $refcds;
+	my $refcdna;	#mp added $refcdna
   my @toalign;
   my $protobj = $fileobj->{$spec}->{prot};
   my $idobj = $fileobj->{$spec}->{ids};
-
 
   my $refcluster; ## variables to take the cluster and its id for later analysis
   my $refid;
@@ -993,6 +997,7 @@ sub orfRanking {#{{{
     ## nothing to chose from
     $refprot = $protobj->[0];
     $refcds = $fileobj->{$spec}->{cds}->[0];
+		$refcdna = $fileobj->{$spec}->{cdna}->[0];	#mp added refcdna
     my $length = length($refprot);
     $refid = $idobj->[0] . "-" . $length;
   }
@@ -1015,7 +1020,7 @@ sub orfRanking {#{{{
 			print "running '$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log'\n" if $debug;	#mp added debug msg
 			!(`$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running $alignmentprog\: $!\n";	#mp added error message
 			## get the alignment score
-			$result->[$i]->{score} =  `grep "Alignment Score" $tmpdir/$pid.ref.log |sed -e 's/[^0-9]//g'`;
+			$result->[$i]->{score} =  `grep "Alignment Score" $tmpdir/$pid.ref.log |sed -e 's/[^0-9]//g'`;	#mp don't use external grep/sed :P
 			if (!$result->[$i]->{score}) {
 	      die "error in determining alignment score\n";
 			}
@@ -1034,14 +1039,19 @@ sub orfRanking {#{{{
 			my ($head) = $aseq =~ /^(-*).*/;
 			($result->[$i]->{astart}) = length($head)+1;
 		}
-      ### the results for all seqs has been gathered, now order them
-      $result = &sortRef($result);
-      ($refprot, $refcds, $refid) = &determineRef($result,$spec);
+		### the results for all seqs has been gathered, now order them
+		$result = &sortRef($result);
+
+		print 'result: ', Dumper($result) if $debug;	#mp added debug output
+		($refprot, $refcds, $refcdna, $refid) = &determineRef($result,$spec);	#mp added $refcdna -- THIS IS where the seq fragments got concatenated
   }
+	print 'before: ', Dumper($fileobj) if $debug;	#mp added debug output
   $fileobj->{$spec}->{refprot} = $refprot;
   $fileobj->{$spec}->{refcds}  = $refcds;
+  $fileobj->{$spec}->{refcdna}  = $refcdna;	#mp added refcdna
   $fileobj->{$spec}->{refid}   = $refid;
   $fileobj->{$spec}->{refspec_final} = $fileobj->{$spec}->{refspec}->[0];
+	print 'after: ', Dumper($fileobj) if $debug;	#mp added debug output
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
   return();
 }#}}}
@@ -1057,7 +1067,7 @@ sub sortRef {#{{{
 	print OUT join "\n", @sort;
 	close OUT;
 	`sort -n -t ',' -k 2 $tmpdir/$pid.sort >$tmpdir/$pid.sort.out`;	#mp how the f*ck can you use the external sort instead of the builtin sort function?!
-	@sort = `less $tmpdir/$pid.sort`;	#mp WTF
+	@sort = `less $tmpdir/$pid.sort`;	#mp WTF happened to reading a file with open()?
 	chomp @sort;
 	$result = undef;
 	for (my $i = 0; $i < @sort; $i++) {
@@ -1078,13 +1088,14 @@ sub determineRef {#{{{
   for (my $i = 0; $i < @$result; $i++) {
     if ($result->[$i]->{start} < $lastend or $lastend == 0) {
       if ($result->[$i]->{score} > $lastscore) {
-	$lastend = $result->[$i]->{end};
-	$lastscore = $result->[$i]->{score};
-	$id = $result->[$i]->{id};
+				$lastend = $result->[$i]->{end};
+				$lastscore = $result->[$i]->{score};
+				$id = $result->[$i]->{id};
       }
     }
     elsif ($result->[$i]->{start} > $lastend) {
       ## a new part of the alignment is covered. Fix the results obtained so far
+			#mp this seems to be the part where it is decided whether to concatenate or not -- INDEED :P
       $final->[$count]->{id} = $id;
       $lastend = $result->[$i]->{end};
       $id = $result->[$i]->{id};
@@ -1096,19 +1107,23 @@ sub determineRef {#{{{
   my $refprot = '';
   my $refid = '';
   my $refcds = '';
+	my $refcdna = '';	#mp added refcdna, maybe this helps
   for (my $i = 0; $i < @$final; $i++) {
     my $seq = $fileobj->{$spec}->{prot}->[$final->[$i]->{id}];
     my $cdsseq = $fileobj->{$spec}->{cds}->[$final->[$i]->{id}];
+		my $cdnaseq = $fileobj->{$spec}->{cdna}->[$final->[$i]->{id}];	#mp added cdnaseq
     my $length = length($seq);
     $refid .= "$fileobj->{$spec}->{ids}->[$final->[$i]->{id}]-$length" . "PP";
     $refprot .= $seq;
     if ($estflag) {
       $refcds .= $cdsseq;
+			$refcdna .= $cdnaseq;	#mp added refcdna
     }
   }
+	#mp remove trailing 'PP'
   $refid =~ s/PP$//;
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
-  return($refprot, $refcds, $refid);
+  return($refprot, $refcds, $refcdna, $refid);	#mp added returning $refcdna
 }#}}}
 #############################
 sub extractSeq {#{{{
@@ -1257,6 +1272,10 @@ sub determineRefspecFinal {#{{{
   my @original;
   my $ac = 0;
   for (my $i = 0; $i < @refspec; $i++) {
+		#mp $fafile = core-ortholog seq file
+		#mp ($dbfile = EST file)
+		#mp $query_name is the HMM ID, e.g., 411851
+		#mp remove the core-ortholog taxon name and everything before it; remains: a number at the end of the header
     @original = `grep -A 1 "^>$query_name|$refspec[$i]" $fafile |sed -e "s/.*$refspec[$i]\|//"`;
     chomp @original;
     
@@ -1265,16 +1284,17 @@ sub determineRefspecFinal {#{{{
       $refspec_final->[$ac]->{searchdb} = "$blastpath/$refspec[$i]/$refspec[$i]" . "_prot";
       ## now allow for more than one sequence per core-ortholog cluster and species
       $refspec_final->[$ac]->{orthocount} = 0;
+
       for (my $j = 0; $j < @original; $j+= 2) {
-	$refspec_final->[$ac]->{refid}->[$refspec_final->[$ac]->{orthocount}] = $original[$j];
-	$refspec_final->[$ac]->{sequence}->[$refspec_final->[$ac]->{orthocount}] = $original[$j+1];
-	$refspec_final->[$ac]->{orthocount} += 1;
+				$refspec_final->[$ac]->{refid}->[$refspec_final->[$ac]->{orthocount}] = $original[$j];
+				$refspec_final->[$ac]->{sequence}->[$refspec_final->[$ac]->{orthocount}] = $original[$j+1];
+				$refspec_final->[$ac]->{orthocount} += 1;
       }
       $ac++;
       @original = qw();
       if (!defined $strict and !defined $relaxed) {
-	## one reftaxon is enough
-	last;
+				## one reftaxon is enough
+				last;
       }
     }
     else {
