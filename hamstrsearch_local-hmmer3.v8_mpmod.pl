@@ -927,7 +927,7 @@ sub predictORF {#{{{
 			my $refspec = $refspecobj->[$j];
 			## determine the reading frame and remove the info from the ID
 			my ($rf) = $ids[$j] =~ /.*_RF([0-9]+)/;
-			print "rf is $rf\n";
+			print "Predicting ORF for hit $ids[$j] (RF $rf)\n";
 			$ids[$j] =~ s/_RF.*//;
 			#mp removed "\\b" from regex and added info line
 			#mp this regex would almost never work because headers are not trimmed anymore
@@ -1042,16 +1042,13 @@ sub orfRanking {#{{{
 		### the results for all seqs has been gathered, now order them
 		$result = &sortRef($result);
 
-		print 'result: ', Dumper($result) if $debug;	#mp added debug output
 		($refprot, $refcds, $refcdna, $refid) = &determineRef($result,$spec);	#mp added $refcdna -- THIS IS where the seq fragments got concatenated
   }
-	print 'before: ', Dumper($fileobj) if $debug;	#mp added debug output
   $fileobj->{$spec}->{refprot} = $refprot;
   $fileobj->{$spec}->{refcds}  = $refcds;
   $fileobj->{$spec}->{refcdna}  = $refcdna;	#mp added refcdna
   $fileobj->{$spec}->{refid}   = $refid;
   $fileobj->{$spec}->{refspec_final} = $fileobj->{$spec}->{refspec}->[0];
-	print 'after: ', Dumper($fileobj) if $debug;	#mp added debug output
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;
   return();
 }#}}}
