@@ -1,5 +1,5 @@
 #!/usr//bin/env perl
-# PROGRAMNAME: hamstrsearch_local.pl
+# PROGRAMNAME: hamstrad.pl
 
 # Copyright (C) 2009 INGO EBERSBERGER, ingo.ebersberger@univie.ac.at
 # This program is free software; you can redistribute it and/or modify it
@@ -18,7 +18,7 @@ use strict;
 use warnings;	#mp
 use lib '../bin/';
 use lib '../bin/Bio';
-use lib '/dmp-work/dmp/tools/hamstrsearch_local/bin';
+# use lib '/dmp-work/dmp/tools/hamstrad/bin';	#mp wtf?
 use Getopt::Long;
 use Bio::SearchIO;
 use Bio::Search::Hit::BlastHit;
@@ -29,7 +29,7 @@ use File::Spec;	#mp
 
 # PROGRAM DESCRIPTION: See bottom of this file.
 ######################## start main #############################
-my $version = "hamstrsearch_local-hmmer3.v8.pl\n";
+my $version = "hamstrad_v8.pl\n";
 ### EDIT THE FOLLOWING LINES TO CUSTOMIZE YOUR SCRIPT
 ## note: all the variables can also be set via the command line
 my $hmmsearchprog = 'hmmsearch'; #program for the hmm search
@@ -1455,7 +1455,10 @@ sub save_cdna {#{{{
 #mp converted helpmessage to POD
 
 #{{{
-=head1 USAGE: hamstrsearch_local.pl -sequence_file=<> -hmmset=<> -taxon=<>  -refspec=<> [-est|-protein] [-hmm=<>] [-representative] [-h]
+=head1 NAME: HaMStRad - HaMStR advanced, a pipeline for orthology assessment based on EST data
+
+
+=head1 SYNOPSIS: hamstrad.pl -sequence_file=<> -hmmset=<> -taxon=<>  -refspec=<> [-est|-protein] [-hmm=<>] [-representative] [-h]
 
 
 =head1 OPTIONS:
@@ -1522,7 +1525,7 @@ set this flag in the case your sequence identifier contain whitespaces and you w
 
 =head2 ### 
 
-The following options should only be used when you chose to alter the default structure of the hamstrsearch_local directories. Currently, this has not been extensively tested.
+The following options should only be used when you chose to alter the default structure of the hamstrad directories. Currently, this has not been extensively tested.
 
 
 =head2 -fasta_file: 
