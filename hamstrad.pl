@@ -1,5 +1,5 @@
 #!/usr//bin/env perl
-# PROGRAMNAME: hamstrad.pl
+# PROGRAMNAME: hamstrad.pl	#mp
 
 # Copyright (C) 2009 INGO EBERSBERGER, ingo.ebersberger@univie.ac.at
 # This program is free software; you can redistribute it and/or modify it
@@ -29,7 +29,7 @@ use File::Spec;	#mp
 
 # PROGRAM DESCRIPTION: See bottom of this file.
 ######################## start main #############################
-my $version = "hamstrad_v8.pl\n";
+my $version = 1.0;	#mp yay
 ### EDIT THE FOLLOWING LINES TO CUSTOMIZE YOUR SCRIPT
 ## note: all the variables can also be set via the command line
 my $hmmsearchprog = 'hmmsearch'; #program for the hmm search
@@ -149,10 +149,10 @@ if ($help) {
 }
 #####determine the hostname#######
 #mp who the fuck cares for the hostname?
-push @log, "VERSION\n\t$version\n";
+push @log, "$0 version $version\n";
 my $hostname = `hostname`;
 chomp $hostname;
-print "$version\n";
+print "$0 $version\n";
 print "hostname is $hostname\n";
 push @log, "HOSTNAME\n\t$hostname\n";
 #################################
@@ -163,7 +163,7 @@ $wiseprog = $use_exonerate ? 'exonerate' : 'genewise';
 if ($check == 0) {
   print "$helpmessage";
   print "#######################################\n";
-  print "There was an error running $version\n";
+  print "There was an error running $0 $version\n";
   print join "\n", @log;
   exit;
 }
@@ -313,7 +313,7 @@ for (my $i = 0; $i < @hmms; $i++) {
       @seqs = (@seqs, @newseqs);	#mp y u no use push() like a sane person
 
 			#mp output
-      open (OUT, ">$aa_dir/$query_name.aa.fa");
+      open (OUT, '>', File::Spec->catfile($aa_dir, "$query_name.aa.fa"));	#mp
       print OUT join "\n", @seqs;
       print OUT "\n";
       close OUT;
@@ -351,20 +351,20 @@ for (my $i = 0; $i < @hmms; $i++) {
 if (@seqs2store > 0) {
 #mp added system error messages to die messages
   if ($append) {
-    open (OUT, ">>$seqs2store_file") or die "failed to open output file $seqs2store_file: $!\n";
+    open (OUT, '>>', $seqs2store_file) or die "failed to open output file $seqs2store_file: $!\n";
   }
   else {
-    open (OUT, ">$seqs2store_file") or die "failed to open output file $seqs2store_file: $!\n";
+    open (OUT, '>', $seqs2store_file) or die "failed to open output file $seqs2store_file: $!\n";
   }
   print OUT join "\n", @seqs2store;
   print OUT "\n";
   close OUT;
   if ($estflag) {
     if ($append) {
-      open (OUT, ">>$cds2store_file") or die "failed to open output file $cds2store_file: $!\n";
+      open (OUT, '>>', $cds2store_file) or die "failed to open output file $cds2store_file: $!\n";
     }
     else {
-    open (OUT, ">$cds2store_file") or die "failed to open output file $cds2store_file: $!\n";
+    open (OUT, '>', $cds2store_file) or die "failed to open output file $cds2store_file: $!\n";
     }
     print OUT join "\n", @cds2store;
     print OUT "\n";
@@ -625,8 +625,8 @@ sub checkInput {#{{{
   if (defined $strict) {
         $strictstring = '.strict';
 }
-  $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . $strictstring . '.out');
-  $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . '_cds' . $strictstring . '.out');
+  $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . $strictstring . '.out');	#mp File::Spec
+  $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . '_cds' . $strictstring . '.out');	#mp File::Spec
 
   ## 11) check for filter setting for BLAST
   print "checking for low complexity filter setting:\t";
@@ -647,19 +647,17 @@ sub checkInput {#{{{
 
   ## 13) setting up the directories where the output files will be put into.
 	#mp changed output dir structure
-  if ($strict) {
-      $strictstring = $strict ? '_strict' : '';
-  }
-  if ($relaxed) {
-			$relaxed_string = $relaxed ? '_relaxed_' : '';
-  }
-  $output_dir = File::Spec->catdir($dbfile_short . '_' . $hmmset . $strictstring . $relaxed_string . '_' . join('_', @refspec));	#mp 
-	$aa_dir = File::Spec->catdir($output_dir, 'aa');
-	$nt_dir = File::Spec->catdir($output_dir, 'nt');
-	$cds_dir = File::Spec->catdir($nt_dir, 'cds');
-	$log_dir = File::Spec->catdir($output_dir, 'log');
-  $hmmsearch_dir = File::Spec->catdir($log_dir, 'hmmsearch');
-	$exonerate_dir = File::Spec->catdir($log_dir, 'exonerate') if $use_exonerate;
+	$strictstring = $strict ? '_strict_' : '';
+	$relaxed_string = defined($relaxed) ? '_relaxed_' : '';
+
+  $output_dir = File::Spec->catdir($dbfile_short . '_' . $hmmset . $strictstring . $relaxed_string . join('_', @refspec));	#mp 
+
+	$aa_dir = File::Spec->catdir($output_dir, 'aa');	#mp File::Spec
+	$nt_dir = File::Spec->catdir($output_dir, 'nt');	#mp File::Spec
+	$cds_dir = File::Spec->catdir($nt_dir, 'cds');	#mp File::Spec
+	$log_dir = File::Spec->catdir($output_dir, 'log');	#mp File::Spec
+  $hmmsearch_dir = File::Spec->catdir($log_dir, 'hmmsearch');	#mp File::Spec
+	$exonerate_dir = File::Spec->catdir($log_dir, 'exonerate') if $use_exonerate;	#mp File::Spec
   if ($check == 1) {
     if (!(-e "$hmmsearch_dir")) {
       `mkdir -p $hmmsearch_dir`;	#mp added -p flag to mkdir
@@ -703,8 +701,8 @@ sub checkInput {#{{{
 	push @log, "HaMStR was called without the -representative option. More than one ortholog may be identified per core-ortholog group!";
 	} 
 	if (defined $use_exonerate) {
-		push @log, "using exonerate instead of genewise";
-		print "Using exonerate instead of genewise";
+		push @log, "using exonerate instead of genewise.";
+		print "Using exonerate instead of genewise.\n";
 	}
 	print "Finished checking input.\n" if $debug;	#mp
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp
@@ -770,7 +768,7 @@ sub check4reciprocity {#{{{
 				my $j = 0;
 				while ($suc == 0 and $j < @original_ids) {
 					if ($original_ids[$j] eq $hits[$i]) {
-						print "\thitting\n";
+						print "\thitting...\n";
 						$refspec_final->[$k]->{hit} = $j;
 						$suc = 1;
 						$relaxed_suc = 1;
@@ -989,9 +987,9 @@ sub predictORF {#{{{
 			my $gw = ($use_exonerate) ? exonerate->new($est, $refseq, "$tmpdir") : run_genewise_hamstr->new($est, $refseq, "$tmpdir");
 
 			#mp save genewise/exonerate output to file
-			my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");
+			my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
 			my $gwoutput = $gw->{gw};
-			open(my $gwresultfh, '>', $gwoutfile) or die "Could not open for writing: $!\n";
+			open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
 			print $gwresultfh join("\n", @$gwoutput);
 			close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
 			print "Wrote exonerate output to $gwoutfile\n" if $debug;	#mp
@@ -1361,6 +1359,7 @@ sub determineRefspecFinal {#{{{
   if (!defined $strict and !defined $relaxed) {
     print "REFSPEC is $refspec_final->[0]->{refspec}\n";
   }
+	print 'refspec_final: ' . Dumper($refspec_final) if $debug;	#mp
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp
   return(1, $refspec_final);
 }#}}}
@@ -1455,10 +1454,14 @@ sub save_cdna {#{{{
 #mp converted helpmessage to POD
 
 #{{{
-=head1 NAME: HaMStRad - HaMStR advanced, a pipeline for orthology assessment based on EST data
+=head1 NAME: 
+
+HaMStRad - HaMStR advanced, a pipeline for orthology assessment based on EST data
 
 
-=head1 SYNOPSIS: hamstrad.pl -sequence_file=<> -hmmset=<> -taxon=<>  -refspec=<> [-est|-protein] [-hmm=<>] [-representative] [-h]
+=head1 SYNOPSIS: 
+
+hamstrad.pl -sequence_file=<> -hmmset=<> -taxon=<>  -refspec=<> [-est|-protein] [-hmm=<>] [-representative] [-h]	
 
 
 =head1 OPTIONS:
@@ -1542,6 +1545,6 @@ sets the path where the blast-dbs are located. Per default this is ../blast_dir.
 
 =head1 LICENSE
 
-This program is freely distributed under a GPL. See -version for more info.
+This program is freely distributed under a GPL. See -h for more info.
 Copyright (c) GPL limited: portions of the code are from separate copyrights
 =cut#}}}
