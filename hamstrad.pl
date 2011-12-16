@@ -1481,27 +1481,27 @@ hamstrad.pl -sequence_file=<> -hmmset=<> -taxon=<>  -refspec=<> [-est|-protein] 
 
 =head1 OPTIONS:
 
-=head2 -sequence_file: 
+=head2 -sequence_file=NAME 
 
 path and name of the file containing the sequences hmmer is run against. Per default, this file should be in the data directory.
 				
-=head2 -est:
+=head2 -est
 
 set this flag if you are searching in ESTs
 				
-=head2 -protein: 
+=head2 -protein 
 
 set this flag if you are searching in protein sequences
 				
-=head2 -hmmset: 
+=head2 -hmmset=NAME 
 
 specifies the name of the core-ortholog set.  The program will look for the files in the default directory 'core-orthologs' unless you specify a different one.
 				
-=head2 -taxon:
+=head2 -taxon=NAME
 
 You need to specify a default taxon name from which your ESTs or protein sequences are derived.
 				
-=head2 -refspec: 
+=head2 -refspec=NAME 
 
 sets the reference species. Note, it has to be a species that contributed sequences to the hmms you are using. NO DEFAULT IS SET! For a list of possible reference taxa you can have a look at the speclist.txt file in the default core-ortholog sets that come with this distribution. Please use the 5 letter abreviations. If you choose to use core-orthologs were not every taxon is represented in all core-orthologs, you can provide a comma-separated list with the preferred refspec first. The lower-ranking reference species will only be used if a certain gene is not present in the preferred refspecies due to alternative paths in the transitive closure to define the core-orthologs.
 				
@@ -1512,7 +1512,7 @@ sets the reference species. Note, it has to be a species that contributed sequen
 
 This options allows to set the e-value cut-off for the HMM search.  DEFAULT: 1
 				
-=head2 -hmm: 
+=head2 -hmm=HMMFILE 
 
 option to provide only a single hmm to be used for the search.  Note, this file has to end with .hmm 
 				
@@ -1540,21 +1540,30 @@ set this flag to F if the re-blast should be performed without low-complexity fi
 
 set this flag in the case your sequence identifier contain whitespaces and you whish to keep the entire sequence identifier throughout your analysis. HaMStR will then replace the whitespaces with a '__'. If this flag is not set, HaMStR will truncate the sequence Identifier at the first whitespace, however if and only if the sequence identifier then remain unique.
 
+=head2 -use_exonerate
 
-=head2 ### 
+use exonerate instead of genewise. This also enables corresponding nucleotide output.
 
-The following options should only be used when you chose to alter the default structure of the hamstrad directories. Currently, this has not been extensively tested.
+=head2 -blast_prog=NAME
+
+sets the name of the BLAST program. Use this if you do not have blastp installed. 
+
+=head2 -clustal_prog=NAME
+
+sets the name of the clustalw program. Use this if you do not have clustalw2 installed.
 
 
-=head2 -fasta_file: 
+=head1 The following options should only be used when you chose to alter the default structure of the hamstrad directories. Currently, this has not been extensively tested.
+
+=head2 -fasta_file=PATH
 
 path and name of the file containing the core-ortholog sequences you don't have to use this option when you 
 
-=head2 -hmmpath: 
+=head2 -hmmpath=PATH
 
 sets the path to the hmm_dir. By default this is set to the current directory.
 
-=head2 -blastpath: 
+=head2 -blastpath=PATH
 
 sets the path where the blast-dbs are located. Per default this is ../blast_dir. Note, the program expects the structure blastpath/refspec/refspec_prot.  To overrule this structure you will have to edit the script.
 
