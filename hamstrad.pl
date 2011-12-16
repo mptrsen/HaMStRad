@@ -33,14 +33,14 @@ my $version = 1.0;	#mp yay
 ### EDIT THE FOLLOWING LINES TO CUSTOMIZE YOUR SCRIPT
 ## note: all the variables can also be set via the command line
 my $hmmsearchprog = 'hmmsearch'; #program for the hmm search
-my $wiseprog = 'genewise';
+my $wiseprog = 'genewise';	#mp change with -use_exonerate
+my $alignmentprog = 'clustalw2';	#mp may be 'clustalw' or 'clustalw2'
 
 ########## EDIT THE FOLLOWING TWO LINES TO CHOOSE YOUR BLAST PROGRAM ##########
-my $blast_prog = 'blastall';
-#my $blast_prog = 'blastp';
+#my $blast_prog = 'blastall';
+my $blast_prog = 'blastp';	#mp may be changed with -blast_prog=<blastprog>
 ###############################################################################
 
-my $alignmentprog = 'clustalw2';
 my $hmmpath = '../core_orthologs'; #path where the hmms are located
 my $blastpath = '../blast_dir'; #path to the blast-dbs
 my $tmpdir = 'tmp';
