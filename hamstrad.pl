@@ -36,8 +36,8 @@ my $hmmsearchprog = 'hmmsearch'; #program for the hmm search
 my $wiseprog = 'genewise';
 
 ########## EDIT THE FOLLOWING TWO LINES TO CHOOSE YOUR BLAST PROGRAM ##########
-#my $blast_prog = 'blastall';
-my $blast_prog = 'blastp';
+my $blast_prog = 'blastall';
+#my $blast_prog = 'blastp';
 ###############################################################################
 
 my $alignmentprog = 'clustalw2';
@@ -140,7 +140,10 @@ GetOptions ("h"        => \$help,
 	          "rbh" => \$bhh,
             "blastpath=s" => \$blastpath,
 						"d" => \$debug,	#mp
-						"use_exonerate" => \$use_exonerate);	#mp
+						"use_exonerate" => \$use_exonerate,	#mp
+						"blast_prog=s" => \$blast_prog,	#mp
+						"clustal_prog=s" => \$alignmentprog	#mp
+);	#mp
 
 
 if ($help) {
@@ -457,17 +460,29 @@ sub checkInput {#{{{
 				print "succeeded\n";
 		}
   }
-  ## 2) Check for presence of blastall
+  ## 2) Check for presence of blast program	#mp
   print "Checking for the blast program\t";
-  if (`which $blast_prog` =~ / no /) {
-    push @log, "could not find $blast_prog in PATH. Please check if this program is installed and executable";
-    print "failed\n";
+  if (system('which', $blast_prog)) {
+    push @log, "could not find $blast_prog in PATH. Please check if this program is installed and executable";	#mp
+    die "failed: could not find $blast_prog in PATH. Use a different BLAST program with the -blast_prog option.\n";	#mp
     $check = 0;
   }
   else {
     push @log, "check for $blast_prog succeeded";
     print "succeeded\n";
   }
+	##mp 2a) Check for presence of alignment program too :P 
+  print "Checking for the clustalw program\t";
+  if (system('which', $alignmentprog)) {
+    push @log, "could not find $alignmentprog in PATH. Please check if this program is installed and executable";	#mp
+    die "failed: could not find $alignmentprog in PATH. Choose a different clustalw program with the -clustal_prog option.\n";	#mp
+    $check = 0;
+  }
+  else {
+    push @log, "check for $alignmentprog succeeded";
+    print "succeeded\n";
+  }
+
   ## 3) Check for presence of hmmsearch
   print "Checking for hmmsearch\t";
   if (! `$hmmsearchprog -h`) {
@@ -625,8 +640,6 @@ sub checkInput {#{{{
   if (defined $strict) {
         $strictstring = '.strict';
 }
-  $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . $strictstring . '.out');	#mp File::Spec
-  $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . '_cds' . $strictstring . '.out');	#mp File::Spec
 
   ## 11) check for filter setting for BLAST
   print "checking for low complexity filter setting:\t";
@@ -658,6 +671,8 @@ sub checkInput {#{{{
 	$log_dir = File::Spec->catdir($output_dir, 'log');	#mp File::Spec
   $hmmsearch_dir = File::Spec->catdir($log_dir, 'hmmsearch');	#mp File::Spec
 	$exonerate_dir = File::Spec->catdir($log_dir, 'exonerate') if $use_exonerate;	#mp File::Spec
+  $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . $strictstring . '.out');	#mp File::Spec
+  $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . '_cds' . $strictstring . '.out');	#mp File::Spec
   if ($check == 1) {
     if (!(-e "$hmmsearch_dir")) {
       `mkdir -p $hmmsearch_dir`;	#mp added -p flag to mkdir
