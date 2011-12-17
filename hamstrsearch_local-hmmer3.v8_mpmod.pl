@@ -283,9 +283,6 @@ for (my $i = 0; $i < @hmms; $i++) {
 				my $idobj = $fileobj->{$taxa[$i]}->{ids};	#mp ids are the seq IDs in the EST file
 				my $protobj = $fileobj->{$taxa[$i]}->{prot};
 				my $cdsobj  = $fileobj->{$taxa[$i]}->{cds};
-				#--------------------------------------------------
-				# my $cdnaobj = $fileobj->{$taxa[$i]}->{cdna};
-				#-------------------------------------------------- 
 				my $refspecobj = $fileobj->{$taxa[$i]}->{refspec};
 				for (my $j = 0; $j < @$idobj; $j++) {
 					push @newseqs, ">$query_name|$refspecobj->[$j]|$taxa[$i]|$idobj->[$j]";
@@ -293,11 +290,6 @@ for (my $i = 0; $i < @hmms; $i++) {
 					if ($estflag) {
 						push @newcds, ">$query_name|$taxa[$i]|$idobj->[$j]|$refspecobj->[$j]";
 						push @newcds, $cdsobj->[$j];	#mp don't worry everything is fine
-						#mp start compiling cdna data... I hope it's structured like everything else
-						#--------------------------------------------------
-						# push @cdna, ">$query_name|$taxa[$i]|$idobj->[$j]|$refspecobj->[$j]_cdna";	#mp compile cdna for output
-						# push @cdna, $cdnaobj->[$j];	#mp compile cdna for output
-						#-------------------------------------------------- 
 					}
 				}
       }
@@ -900,7 +892,7 @@ sub processHits {#{{{
 		if ($fileobj->{$taxa[$i]}->{prot}) {
 			print "$taxa[$i] has prot defined, doing orfRanking...\n" if $debug;
 			&orfRanking($taxa[$i]);
-			last;
+			last;	#mp TODO is this right ?
 		}
   }
 }  #}}}
@@ -941,9 +933,6 @@ sub predictORF {#{{{
 			if ($rf > 3) {
 				$est = revComp($est);
 			}
-			#--------------------------------------------------
-			# printf "running $wiseprog with:\n>\"%s|%s\"\n\"%s\"\nand:\n>\"%s|%s\"\n\"%s\"\n", $taxa[$i], $ids[$j], $est, $refseq_id, $refspec, $refseq;	#mp added info line
-			#-------------------------------------------------- 
 			# TODO why are $refspec and $refseq sometimes left empty?
 			#mp run either exonerate or genewise, depending on invocation
 			my $gw = ($use_exonerate) ? exonerate->new($est, $refseq, "$tmpdir") : run_genewise_hamstr->new($est, $refseq, "$tmpdir");
@@ -1316,7 +1305,7 @@ sub determineRefspecFinal {#{{{
 ######################
 #mp sub: save_cdna
 #mp saves cdna in cdna output file 
-#mp no longer called
+#mp no longer called, candidate for removal
 sub save_cdna {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
