@@ -2,7 +2,7 @@ package exonerate;
 use strict;
 use Data::Dumper;
 my $exhaustive = 0;
-my $debug = 1;
+my $debug = 0;
 
 sub new {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
