@@ -1,6 +1,6 @@
 package run_genewise_hamstr;
 use strict;
-my $debug = 1;
+my $debug = 0;
 $ENV{'WISECONFIGDIR'} =  "../wisecfg";
 # this module runs genewise on a DNA sequence and a protein sequence
 # and then allows to parse this result.

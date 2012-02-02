@@ -26,6 +26,7 @@ use run_genewise_hamstr;
 use exonerate;	#mp
 use Data::Dumper;	#mp
 use File::Spec;	#mp
+use File::Basename;	#mp
 
 # PROGRAM DESCRIPTION: See bottom of this file.
 ######################## start main #############################
@@ -107,6 +108,7 @@ my $exhaustive;	#mp
 my $debug;	#mp
 my $use_exonerate;	#mp
 my $exonerate_dir;
+my $genewise_dir;
 my $skipcount = 0;	#mp
 my $couplecount = 0;	#mp
 
@@ -377,8 +379,8 @@ if (@seqs2store > 0) {
 else {
   print "no hits found\n";
 }
-print "$0 $dbfile\:\n";
-print "Done! $skipcount of $couplecount couples skipped during exonerate post-processing.\n"; #mp
+print "$0 $dbfile\: Done!\n";		#mp
+print "$skipcount of $couplecount couples skipped during exonerate post-processing.\n"; #mp
 exit;
 
 ##################### start subs ###############
@@ -660,8 +662,8 @@ sub checkInput {#{{{
 
   ## 13) setting up the directories where the output files will be put into.
 	#mp changed output dir structure
-	$strictstring = $strict ? '_strict_' : '';
-	$relaxed_string = defined($relaxed) ? '_relaxed_' : '';
+	$strictstring = $strict ? '_strict' : '_';
+	$relaxed_string = defined($relaxed) ? '_relaxed' : '';
 
   $output_dir = File::Spec->catdir($dbfile_short . '_' . $hmmset . $strictstring . $relaxed_string . join('_', @refspec));	#mp 
 
@@ -671,8 +673,9 @@ sub checkInput {#{{{
 	$log_dir = File::Spec->catdir($output_dir, 'log');	#mp File::Spec
   $hmmsearch_dir = File::Spec->catdir($log_dir, 'hmmsearch');	#mp File::Spec
 	$exonerate_dir = File::Spec->catdir($log_dir, 'exonerate') if $use_exonerate;	#mp File::Spec
-  $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . $strictstring . '.out');	#mp File::Spec
-  $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . $dbfile_short . '_' . $hmmset . '_cds' . $strictstring . '.out');	#mp File::Spec
+	$genewise_dir = File::Spec->catdir($log_dir, 'genewise') unless $use_exonerate;	#mp added genewise output dir
+  $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $hmmset . $strictstring . '.out');	#mp File::Spec
+  $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $hmmset . '_cds' . $strictstring . '.out');	#mp File::Spec
   if ($check == 1) {
     if (!(-e "$hmmsearch_dir")) {
       `mkdir -p $hmmsearch_dir`;	#mp added -p flag to mkdir
@@ -692,6 +695,11 @@ sub checkInput {#{{{
 				`mkdir -p $exonerate_dir`;	#mp with -p flag
 			}
 		}
+		#mp added genewise output dir
+		if (!(-e "$genewise_dir")) {
+			`mkdir -p $genewise_dir`;	#mp with -p flag
+		}
+		#mp end added genewise output dir
 		if (!(-e "$log_dir")) {
 			`mkdir -p $log_dir`;	#mp with -p flag
 		}
@@ -764,7 +772,7 @@ sub check4reciprocity {#{{{
 	`sed -i -e 's/Length=\\([0-9]*\\)/  (\\1 letters)/' -e 's/^\\(>*\\)lcl|/\\1/' $tmpdir/$$.blast`;	
     }
     else {
-      !`blastall -p blastp -d $refspec_final->[$k]->{searchdb} -F $filter -i $tmpdir/$$.fa -o $tmpdir/$$.blast` or die "Problem running blast\n";
+      !`$blast_prog -p blastp -d $refspec_final->[$k]->{searchdb} -F $filter -i $tmpdir/$$.fa -o $tmpdir/$$.blast` or die "Problem running blastall\n";	#mp
     }
     ## 2) now parse the best blast hit
 
@@ -999,25 +1007,38 @@ sub predictORF {#{{{
 			# TODO why are $refspec and $refseq sometimes left empty?
 			#mp run either exonerate or genewise, depending on invocation
 			++$couplecount;	#mp
-			my $gw = ($use_exonerate) ? exonerate->new($est, $refseq, "$tmpdir") : run_genewise_hamstr->new($est, $refseq, "$tmpdir");
-
-			#mp save genewise/exonerate output to file
-			my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
-			my $gwoutput = $gw->{gw};
-			open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
-			print $gwresultfh join("\n", @$gwoutput);
-			close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
-			print "Wrote exonerate output to $gwoutfile\n" if $debug;	#mp
-			#mp end save genewise/exonerate output 
-
-			#mp Skip a couple if exonerate doesn't return anything 
-			#mp most likely if it has been handed an empty prot sequence (for whatever reason)
-			if ($gw->{gw_count} == 0) {
-				++$skipcount;
-				print "$ids[$j] and $query_name|$refspec returned an empty exonerate result, skipping this couple ($skipcount skipped so far).\n";
-				next TAXON;
+			my $gw;
+			if ($use_exonerate) {
+				$gw = exonerate->new($est, $refseq, "$tmpdir");
+				#mp save exonerate output to file
+				my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
+				my $gwoutput = $gw->{gw};
+				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
+				print $gwresultfh join("\n", @$gwoutput);
+				close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
+				print "Wrote exonerate output to $gwoutfile\n" if $debug;	#mp
+				#mp end save exonerate output 
+				#mp Skip a couple if exonerate doesn't return anything 
+				#mp most likely if it has been handed an empty prot sequence (for whatever reason)
+				if ($gw->{gw_count} == 0) {
+					++$skipcount;
+					print "$ids[$j] and $query_name|$refspec returned an empty exonerate result, skipping this couple ($skipcount skipped so far).\n";
+					next TAXON;
+				}
+				#mp end skip couple
 			}
-			#mp end skip couple
+			else {
+				$gw = run_genewise_hamstr->new($est, $refseq, "$tmpdir");
+				#mp save genewise output to file
+				my $gwoutfile = File::Spec->catfile($tmpdir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
+				my $gwoutput = $gw->{gw};
+				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
+				print $gwresultfh join("\n", @$gwoutput);
+				close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
+				print "Wrote exonerate output to $gwoutfile\n" if $debug;	#mp
+				#mp end save genewise output 
+			}
+
 			my $translation = $gw->translation;
 			my $cds = $gw->codons;
 			$translation =~ s/[-!]//g;	#mp deletes gaps and stop codons (but not those coded with '*')
@@ -1546,11 +1567,11 @@ use exonerate instead of genewise. This also enables corresponding nucleotide ou
 
 =head2 -blast_prog=NAME
 
-sets the name of the BLAST program. Use this if you do not have blastp installed. 
+sets the name of the BLAST program. May be 'blastp' or 'blastall'. Default: blastp
 
 =head2 -clustal_prog=NAME
 
-sets the name of the clustalw program. Use this if you do not have clustalw2 installed.
+sets the name of the clustalw program. May be 'clustalw' or 'clustalw2'. Default: clustalw2
 
 
 =head1 The following options should only be used when you chose to alter the default structure of the hamstrad directories. Currently, this has not been extensively tested.
