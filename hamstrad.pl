@@ -662,10 +662,10 @@ sub checkInput {#{{{
 
   ## 13) setting up the directories where the output files will be put into.
 	#mp changed output dir structure
-	$strictstring = $strict ? '_strict' : '_';
-	$relaxed_string = defined($relaxed) ? '_relaxed' : '';
+	$strictstring = $strict ? 'strict_' : '';
+	$relaxed_string = defined($relaxed) ? 'relaxed_' : '';
 
-  $output_dir = File::Spec->catdir($dbfile_short . '_' . $hmmset . $strictstring . $relaxed_string . join('_', @refspec));	#mp 
+  $output_dir = File::Spec->catdir($dbfile_short . '_' . $hmmset . '_' . $strictstring . $relaxed_string . join('_', @refspec));	#mp 
 
 	$aa_dir = File::Spec->catdir($output_dir, 'aa');	#mp File::Spec
 	$nt_dir = File::Spec->catdir($output_dir, 'nt');	#mp File::Spec
@@ -696,8 +696,10 @@ sub checkInput {#{{{
 			}
 		}
 		#mp added genewise output dir
-		if (!(-e "$genewise_dir")) {
-			`mkdir -p $genewise_dir`;	#mp with -p flag
+		if (!$use_exonerate) {
+			if (!(-e "$genewise_dir")) {
+				`mkdir -p $genewise_dir`;	#mp with -p flag
+			}
 		}
 		#mp end added genewise output dir
 		if (!(-e "$log_dir")) {
@@ -878,12 +880,12 @@ sub getTaxon {#{{{
     $taxon =~ s/\s*$//;
     $taxon =~ s/\s/_/g;
     if ($taxon) {
-	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp
-	return ($taxon);
+			print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp
+			return ($taxon);
     }
     else {
-	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp
-	return();
+			print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp
+			return();
     }
 }#}}}
 ###############
@@ -935,9 +937,11 @@ sub determineReferences {#{{{
 	#-------------------------------------------------- 
 	if (!$refspec) {
 		my $errorfile = $dbfile.'_errors.txt';
-		warn "refspec for query ID $hitname is empty!\nThis is a bug and will probably lead to genewise/exonerate crashing later. Please report it to the developers.\n";
+		print 'fileobj: ' . Dumper($fileobj) if $debug;	#mp
+		print "refspec for query ID $hitname is empty!\nThis means that this orthology assignment has an alignment score of zero or less (bad alignment). We are not sure whether this is a bug, but it will probably lead to genewise/exonerate crashing later.\n";
+		print "\n";
 		open(my $errfh, ">>$errorfile") || die "Could not open $errorfile: $!\n";
-		print $errfh scalar(localtime), " Missing refspec for $hitname from hmmsearching with $query_name\n";
+		print $errfh scalar(localtime), " Bad ClustalW alignment: Missing refspec for $hitname from hmmsearching with $query_name\n";
 		close $errfh || die "Could not close $errorfile: $!\n";
 	}
 	else {
@@ -1082,7 +1086,7 @@ sub orfRanking {#{{{
 		push @toalign, ">$fileobj->{$spec}->{refspec}->[0]";
 		push @toalign, $fileobj->{$spec}->{refseq}->[0];
 		## now walk through all the contigs
-		for (my $i = 0; $i < @$protobj; $i++) {
+		for (my $i = 0; $i < scalar @$protobj; $i++) {	#mp added 'scalar' for clarity
 			my @testseq = (">$idobj->[$i]", $protobj->[$i]);
 			@testseq = (@testseq, @toalign);	#mp y u no use push() for readability
 
@@ -1186,7 +1190,18 @@ sub determineRef {#{{{
   my $refid = '';
   my $refcds = '';
 	my $refcdna = '' if $use_exonerate;	#mp added refcdna, maybe this helps
+	my @headers;	#mp
   for (my $i = 0; $i < @$final; $i++) {
+
+		#mp add check for duplicate transcripts
+		my $header = $fileobj->{$spec}->{ids}->[$final->[$i]->{id}];
+		if (grep(/$header/, @headers)) {
+			printf("Skipping %s: already present in this sequence\n", $header);
+			next;
+		}
+		push(@headers, $header);
+		#mp end check for duplicate transcripts
+
     my $seq = $fileobj->{$spec}->{prot}->[$final->[$i]->{id}];
     my $cdsseq = $fileobj->{$spec}->{cds}->[$final->[$i]->{id}];
 		my $cdnaseq = $fileobj->{$spec}->{cdna}->[$final->[$i]->{id}] if $use_exonerate;	#mp added cdnaseq
@@ -1395,7 +1410,6 @@ sub determineRefspecFinal {#{{{
   if (!defined $strict and !defined $relaxed) {
     print "REFSPEC is $refspec_final->[0]->{refspec}\n";
   }
-	print 'refspec_final: ' . Dumper($refspec_final) if $debug;	#mp
 	print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp
   return(1, $refspec_final);
 }#}}}
