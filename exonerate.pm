@@ -341,7 +341,7 @@ sub _GetIndels {#{{{
 
 # sub: extract_cdna
 # extracts cdna from the exonerate output
-sub extract_cdna {
+sub extract_cdna {#{{{
 	print join(" ", (caller(0))[0..3]), "\n" if $debug;
 	my $self = shift;
 	my @cdna_tmp;
@@ -363,6 +363,6 @@ sub extract_cdna {
 	# remove all fasta headers, we can craft them ourselves
 	my $cdna = join('', grep( !/^>/, @cdna_tmp ));
 	return $cdna;
-}
+}#}}}
 # return fuckin' true!
 1;
