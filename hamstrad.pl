@@ -327,13 +327,13 @@ for (my $i = 0; $i < @hmms; $i++) {
 
 				#mp more output
 				open (OUT, '>', File::Spec->catfile($cds_dir, $query_name . '.cds.fa')) or die "Fatal: Could not open " . File::Spec->catfile($cds_dir, "$query_name.cds.fa") . ": $!\n";
-				print OUT join "\n", @newcds;
+				print OUT join("\n", @newcds) . "\n";	#mp added newline
 				close OUT;
 
 				#mp output cdna to cdna file
 				if ($use_exonerate) {
 					open (OUT, '>', File::Spec->catfile($nt_dir, $query_name . '.nt.fa')) or die "Fatal: Could not open $nt_dir/$query_name.nt.fa: $!\n";
-					print OUT join "\n", @newcdna;
+					print OUT join("\n", @newcdna) . "\n";	#mp added newline
 					close OUT;
 				}
 				#mp end cdna output
@@ -371,7 +371,7 @@ if (@seqs2store > 0) {
     else {
     open (OUT, '>', $cds2store_file) or die "failed to open output file $cds2store_file: $!\n";
     }
-    print OUT join "\n", @cds2store;
+    print OUT join("\n", @cds2store) . "\n";
     print OUT "\n";
     close OUT;
   }
