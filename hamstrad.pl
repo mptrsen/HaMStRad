@@ -673,14 +673,9 @@ sub checkInput {#{{{
 	$log_dir = File::Spec->catdir($output_dir, 'log');	#mp File::Spec
   $hmmsearch_dir = File::Spec->catdir($log_dir, 'hmmsearch');	#mp File::Spec
 	$exonerate_dir = File::Spec->catdir($log_dir, 'exonerate') if $use_exonerate;	#mp File::Spec
-<<<<<<< HEAD
-  $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $hmmset . $strictstring . $relaxed_string . join('_', @refspec) . '.out');	#mp File::Spec
-  $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $hmmset . '_cds' . $strictstring . $relaxed_string . join('_', @refspec) . '.out');	#mp File::Spec
-=======
 	$genewise_dir = File::Spec->catdir($log_dir, 'genewise') unless $use_exonerate;	#mp added genewise output dir
   $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $hmmset . $strictstring . '.out');	#mp File::Spec
   $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $hmmset . '_cds' . $strictstring . '.out');	#mp File::Spec
->>>>>>> 54fd4610fa52dfeb845324de9e80a44035aa3e6c
   if ($check == 1) {
     if (!(-e "$hmmsearch_dir")) {
       `mkdir -p $hmmsearch_dir`;	#mp added -p flag to mkdir
@@ -1020,7 +1015,7 @@ sub predictORF {#{{{
 				my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
 				my $gwoutput = $gw->{gw};
 				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
-				print $gwresultfh join("\n", @$gwoutput);
+				print $gwresultfh join("\n", @$gwoutput) . "\n";
 				close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
 				print "Wrote exonerate output to $gwoutfile\n" if $debug;	#mp
 				#mp end save exonerate output 
