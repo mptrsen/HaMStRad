@@ -329,13 +329,13 @@ for (my $i = 0; $i < @hmms; $i++) {
 
 				#mp more output
 				open (OUT, '>', File::Spec->catfile($cds_dir, $query_name . '.cds.fa')) or die "Fatal: Could not open " . File::Spec->catfile($cds_dir, "$query_name.cds.fa") . ": $!\n";
-				print OUT join "\n", @newcds;
+				print OUT join("\n", @newcds) . "\n";	#mp added newline
 				close OUT;
 
 				#mp output cdna to cdna file
 				if ($use_exonerate) {
 					open (OUT, '>', File::Spec->catfile($nt_dir, $query_name . '.nt.fa')) or die "Fatal: Could not open $nt_dir/$query_name.nt.fa: $!\n";
-					print OUT join "\n", @newcdna;
+					print OUT join("\n", @newcdna) . "\n";	#mp added newline
 					close OUT;
 				}
 				#mp end cdna output
@@ -373,7 +373,7 @@ if (@seqs2store > 0) {
     else {
     open (OUT, '>', $cds2store_file) or die "failed to open output file $cds2store_file: $!\n";
     }
-    print OUT join "\n", @cds2store;
+    print OUT join("\n", @cds2store) . "\n";
     print OUT "\n";
     close OUT;
   }
@@ -966,7 +966,7 @@ sub processHits {#{{{
 		if ($fileobj->{$taxa[$i]}->{prot}) {
 			print "$taxa[$i] has prot defined, doing orfRanking...\n" if $debug;	#mp
 			&orfRanking($taxa[$i]);
-			last;
+			last;	#mp TODO is this right ?
 		}
   }
 }  #}}}
@@ -1007,9 +1007,6 @@ sub predictORF {#{{{
 			if ($rf > 3) {
 				$est = revComp($est);
 			}
-			#--------------------------------------------------
-			# printf "running $wiseprog with:\n>\"%s|%s\"\n\"%s\"\nand:\n>\"%s|%s\"\n\"%s\"\n", $taxa[$i], $ids[$j], $est, $refseq_id, $refspec, $refseq;	#mp added info line
-			#-------------------------------------------------- 
 			# TODO why are $refspec and $refseq sometimes left empty?
 			#mp run either exonerate or genewise, depending on invocation
 			++$couplecount;	#mp
@@ -1020,7 +1017,7 @@ sub predictORF {#{{{
 				my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
 				my $gwoutput = $gw->{gw};
 				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
-				print $gwresultfh join("\n", @$gwoutput);
+				print $gwresultfh join("\n", @$gwoutput) . "\n";
 				close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
 				print "Wrote exonerate output to $gwoutfile\n" if $debug;	#mp
 				#mp end save exonerate output 
@@ -1039,7 +1036,7 @@ sub predictORF {#{{{
 				my $gwoutfile = File::Spec->catfile($tmpdir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
 				my $gwoutput = $gw->{gw};
 				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
-				print $gwresultfh join("\n", @$gwoutput);
+				print $gwresultfh join("\n", @$gwoutput) . "\n";
 				close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
 				print "Wrote exonerate output to $gwoutfile\n" if $debug;	#mp
 				#mp end save genewise output 
