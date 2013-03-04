@@ -107,6 +107,7 @@ my $bhh;
 my $exhaustive;	#mp
 my $debug;	#mp
 my $use_exonerate;	#mp
+my $ncpu = 1; #mp number of CPU cores that hmmsearch can use
 my $exonerate_dir;
 my $genewise_dir;
 my $skipcount = 0;	#mp
@@ -143,6 +144,7 @@ GetOptions ("h"        => \$help,
             "blastpath=s" => \$blastpath,
 						"d" => \$debug,	#mp
 						"use_exonerate" => \$use_exonerate,	#mp
+						"ncpu=i" => \$ncpu, #mp number of CPUs that can be used by hmmsearch
 						"blast_prog=s" => \$blast_prog,	#mp
 						"clustal_prog=s" => \$alignmentprog	#mp
 );	#mp
@@ -198,7 +200,7 @@ for (my $i = 0; $i < @hmms; $i++) {
   if (!(-e "$hmmsearch_dir/$hmmout")) {
     print "now running $hmmsearchprog using $hmm\n";
 #	print "$hmmsearchprog $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout";
-    !`$hmmsearchprog $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
+    !`$hmmsearchprog -cpu $ncpu $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
   }
   else {
     print "an hmmresult $hmmout already exists. Using this one!\n";
