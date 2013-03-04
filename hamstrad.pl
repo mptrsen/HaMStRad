@@ -1578,6 +1578,10 @@ set this flag in the case your sequence identifier contain whitespaces and you w
 
 use exonerate instead of genewise. This also enables corresponding nucleotide output.
 
+=head2 -ncpu <N>
+
+set number of CPU cores that hmmsearch can use. Defaults to 1 if left unspecified.
+
 =head2 -blast_prog=NAME
 
 sets the name of the BLAST program. May be 'blastp' or 'blastall'. Default: blastp
