@@ -1014,7 +1014,7 @@ sub predictORF {#{{{
 			if ($use_exonerate) {
 				$gw = exonerate->new($est, $refseq, "$tmpdir");
 				#mp save exonerate output to file
-				my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
+				my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' . basename($wiseprog) . "out");	#mp File::Spec
 				my $gwoutput = $gw->{gw};
 				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
 				print $gwresultfh join("\n", @$gwoutput) . "\n";
@@ -1033,7 +1033,7 @@ sub predictORF {#{{{
 			else {
 				$gw = run_genewise_hamstr->new($est, $refseq, "$tmpdir");
 				#mp save genewise output to file
-				my $gwoutfile = File::Spec->catfile($tmpdir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
+				my $gwoutfile = File::Spec->catfile($tmpdir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' . basename($wiseprog) . "out");	#mp File::Spec
 				my $gwoutput = $gw->{gw};
 				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
 				print $gwresultfh join("\n", @$gwoutput) . "\n";
