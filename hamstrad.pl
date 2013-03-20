@@ -200,7 +200,7 @@ for (my $i = 0; $i < @hmms; $i++) {
   if (!(-e "$hmmsearch_dir/$hmmout")) {
     print "now running $hmmsearchprog using $hmm\n";
 #	print "$hmmsearchprog $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout";
-    !`$hmmsearchprog -cpu $ncpu $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
+    !`$hmmsearchprog --cpu $ncpu $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
   }
   else {
     print "an hmmresult $hmmout already exists. Using this one!\n";
@@ -1095,7 +1095,7 @@ sub orfRanking {#{{{
 
 			## run clustalw	#mp
 			print "running '$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log'\n" if $debug;	#mp added debug msg
-			!(`$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running $alignmentprog\: $!\n";	#mp added error message
+			!(`$alignmentprog -infile=$tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running $alignmentprog\: $!\n";	#mp added error message
 			## get the alignment score
 			$result->[$i]->{score} =  `grep "Alignment Score" $tmpdir/$pid.ref.log |sed -e 's/[^0-9]//g'`;	#mp don't use external grep/sed :P
 			if (!$result->[$i]->{score}) {
