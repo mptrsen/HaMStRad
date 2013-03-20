@@ -107,6 +107,7 @@ my $bhh;
 my $exhaustive;	#mp
 my $debug;	#mp
 my $use_exonerate;	#mp
+my $ncpu = 1; #mp number of CPU cores that hmmsearch can use
 my $exonerate_dir;
 my $genewise_dir;
 my $skipcount = 0;	#mp
@@ -143,6 +144,7 @@ GetOptions ("h"        => \$help,
             "blastpath=s" => \$blastpath,
 						"d" => \$debug,	#mp
 						"use_exonerate" => \$use_exonerate,	#mp
+						"ncpu=i" => \$ncpu, #mp number of CPUs that can be used by hmmsearch
 						"blast_prog=s" => \$blast_prog,	#mp
 						"clustal_prog=s" => \$alignmentprog	#mp
 );	#mp
@@ -198,7 +200,7 @@ for (my $i = 0; $i < @hmms; $i++) {
   if (!(-e "$hmmsearch_dir/$hmmout")) {
     print "now running $hmmsearchprog using $hmm\n";
 #	print "$hmmsearchprog $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout";
-    !`$hmmsearchprog $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
+    !`$hmmsearchprog -cpu $ncpu $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
   }
   else {
     print "an hmmresult $hmmout already exists. Using this one!\n";
@@ -1012,7 +1014,7 @@ sub predictORF {#{{{
 			if ($use_exonerate) {
 				$gw = exonerate->new($est, $refseq, "$tmpdir");
 				#mp save exonerate output to file
-				my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
+				my $gwoutfile = File::Spec->catfile($exonerate_dir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' . basename($wiseprog) . "out");	#mp File::Spec
 				my $gwoutput = $gw->{gw};
 				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
 				print $gwresultfh join("\n", @$gwoutput) . "\n";
@@ -1031,7 +1033,7 @@ sub predictORF {#{{{
 			else {
 				$gw = run_genewise_hamstr->new($est, $refseq, "$tmpdir");
 				#mp save genewise output to file
-				my $gwoutfile = File::Spec->catfile($tmpdir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' .$wiseprog . "out");	#mp File::Spec
+				my $gwoutfile = File::Spec->catfile($tmpdir, $query_name . "_" . $refspec . '_' . "$ids[$j]" . '.' . basename($wiseprog) . "out");	#mp File::Spec
 				my $gwoutput = $gw->{gw};
 				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
 				print $gwresultfh join("\n", @$gwoutput) . "\n";
@@ -1575,6 +1577,10 @@ set this flag in the case your sequence identifier contain whitespaces and you w
 =head2 -use_exonerate
 
 use exonerate instead of genewise. This also enables corresponding nucleotide output.
+
+=head2 -ncpu <N>
+
+set number of CPU cores that hmmsearch can use. Defaults to 1 if left unspecified.
 
 =head2 -blast_prog=NAME
 
