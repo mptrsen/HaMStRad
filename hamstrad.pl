@@ -753,7 +753,8 @@ sub check4reciprocity {#{{{
   my $strict_suc = -1; # keeps track of success for all taxa
   my $relaxed_suc = 0; # keeps track of success for at least one taxon
   ## get the sequence that was identified as hit in the pHMM search from the db_file
-  my $hitseq = `grep -m 1 -A 1 ">$hitname\$" $dbfile | tail -n 1`;
+	print "Finding '$hitname' in $dbfile...\n" if $debug; #mp
+  my $hitseq = `grep -F -m 1 -A 1 ">$hitname" $dbfile | tail -n 1`;	#mp added -F
   if (!defined $hitseq) {
     print "could not retrieve a sequence for $hitname. Skipping...\n";
 		print join(" ", (caller(0))[0..3]), ", leaving\n" if $debug;	#mp
