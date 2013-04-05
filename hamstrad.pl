@@ -200,7 +200,7 @@ for (my $i = 0; $i < @hmms; $i++) {
   if (!(-e "$hmmsearch_dir/$hmmout")) {
     print "now running $hmmsearchprog using $hmm\n";
 #	print "$hmmsearchprog $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout";
-    !`$hmmsearchprog $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
+    !`$hmmsearchprog --cpu $ncpu $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
   }
   else {
     print "an hmmresult $hmmout already exists. Using this one!\n";
