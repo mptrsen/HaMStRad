@@ -200,7 +200,7 @@ for (my $i = 0; $i < @hmms; $i++) {
   if (!(-e "$hmmsearch_dir/$hmmout")) {
     print "now running $hmmsearchprog using $hmm\n";
 #	print "$hmmsearchprog $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout";
-    !`$hmmsearchprog -cpu $ncpu $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
+    !`$hmmsearchprog $hmm_dir/$hmm $dbfile >$hmmsearch_dir/$hmmout` or die "Problem running hmmsearch\n";
   }
   else {
     print "an hmmresult $hmmout already exists. Using this one!\n";
@@ -659,7 +659,7 @@ sub checkInput {#{{{
 }
 
   ## 12) apply the evalue-cut-off to the hmmsearch program
-  $hmmsearchprog = $hmmsearchprog . " -E $eval";
+  $hmmsearchprog = $hmmsearchprog . " -E $eval --cpu $ncpu";
   push @log, "hmmsearch: $hmmsearchprog";
 
   ## 13) setting up the directories where the output files will be put into.
@@ -673,6 +673,8 @@ sub checkInput {#{{{
 	$nt_dir = File::Spec->catdir($output_dir, 'nt');	#mp File::Spec
 	$cds_dir = File::Spec->catdir($nt_dir, 'cds');	#mp File::Spec
 	$log_dir = File::Spec->catdir($output_dir, 'log');	#mp File::Spec
+	#mp overwrite the tmpdir variable with a per-run tmpdir to avoid confusion
+	$tmpdir = File::Spec->catdir($output_dir, 'tmp'); #mp added per-run tempdir
   $hmmsearch_dir = File::Spec->catdir($log_dir, 'hmmsearch');	#mp File::Spec
 	$exonerate_dir = File::Spec->catdir($log_dir, 'exonerate') if $use_exonerate;	#mp File::Spec
 	$genewise_dir = File::Spec->catdir($log_dir, 'genewise') unless $use_exonerate;	#mp added genewise output dir
@@ -706,6 +708,9 @@ sub checkInput {#{{{
 		#mp end added genewise output dir
 		if (!(-e "$log_dir")) {
 			`mkdir -p $log_dir`;	#mp with -p flag
+		}
+		if (!(-e "$tmpdir")) {
+			`mkdir -p $tmpdir`;	#mp with -p flag
 		}
 		#mp end add creation of additional output dirs
 		#mp end changed output dir structure
@@ -1038,7 +1043,7 @@ sub predictORF {#{{{
 				open(my $gwresultfh, '>', $gwoutfile) or die "Could not open $gwoutfile for writing: $!\n";
 				print $gwresultfh join("\n", @$gwoutput) . "\n";
 				close $gwresultfh or die "Could not close file $gwoutfile: $!\n";
-				print "Wrote exonerate output to $gwoutfile\n" if $debug;	#mp
+				print "Wrote genewise output to $gwoutfile\n" if $debug;	#mp
 				#mp end save genewise output 
 			}
 
@@ -1095,7 +1100,7 @@ sub orfRanking {#{{{
 
 			## run clustalw	#mp
 			print "running '$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log'\n" if $debug;	#mp added debug msg
-			!(`$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running $alignmentprog\: $!\n";	#mp added error message
+			!(`$alignmentprog -infile=$tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running $alignmentprog\: $!\n";	#mp added error message
 			## get the alignment score
 			$result->[$i]->{score} =  `grep "Alignment Score" $tmpdir/$pid.ref.log |sed -e 's/[^0-9]//g'`;	#mp don't use external grep/sed :P
 			if (!$result->[$i]->{score}) {
