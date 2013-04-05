@@ -1004,7 +1004,8 @@ sub predictORF {#{{{
 			#mp removed "\\b" from regex and added info line
 			#mp this regex would almost never work because headers are not trimmed anymore
 			print "running: \"grep -A 1 \">$ids[$j]\" $estfile |tail -n 1\"\n" if $debug;	#mp
-			my $est = `grep -A 1 ">$ids[$j]" $estfile |tail -n 1`;	#mp get the sequence from the original EST file
+			#mp added -F flag for fixed-string search. potentially dangerous :/
+			my $est = `grep -F -A 1 ">$ids[$j]" $estfile |tail -n 1`;	#mp get the sequence from the original EST file
 			if (! $est) {
 				die "error in retrieval of est sequence for $ids[$j] in subroutine processHits\n";
 			}
