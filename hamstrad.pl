@@ -27,6 +27,7 @@ use exonerate;	#mp
 use Data::Dumper;	#mp
 use File::Spec;	#mp
 use File::Basename;	#mp
+use Seqload::Fasta; #mp
 
 # PROGRAM DESCRIPTION: See bottom of this file.
 ######################## start main #############################
@@ -113,7 +114,6 @@ my $genewise_dir;
 my $skipcount = 0;	#mp
 my $couplecount = 0;	#mp
 
-
 if (@ARGV==0) {
 	$help = 1;
 }
@@ -181,8 +181,12 @@ else {
 }
 ### read in of the core-ortholog sequences
 #mp literally, read in the entire core-orthologs fasta file.
-#mp I am so not going to mimic this.
 my $co_seqs = parseSeqfile("$fafile");
+
+#mp read in the original, untranslated sequences
+#mp this will hold the entire sequence file in memory for easy retrieval of individual sequences
+my $untranslated_sequence_of = slurp_fasta($estfile);
+
 
 ## 2) loop through the hmms
 ## process each hmm file separately
@@ -231,7 +235,7 @@ for (my $i = 0; $i < @hmms; $i++) {
 	HMMER_RESULT:			#mp added label for loop
   for (my $k = 0; $k < @results; $k++) {	#mp for every hmmsearch result, do the following 
     my $hitname = $results[$k];
-    print "processing hit: $hitname\n";	#mp added report
+    print "Processing HMMsearch hit: $hitname\n";	#mp added report
     my $keep = 0;
     my $hitseq = '';
     $refseq = '';
@@ -993,6 +997,8 @@ sub predictORF {#{{{
     my $refspecobj 	= $fileobj->{$taxa[$i]}->{refspec};	#mp indented
     my @ids = @$idobj;
 
+		#print Dumper($fileobj->{$taxa[$i]}); exit;	#mp debugging
+
 		ID:	#mp labelled the loop. These are the individual sequences from the EST file that produced a hmmsearch hit. For each, do:
     for (my $j = 0; $j < @ids; $j++) {
 			my $refseq = $refseqobj->[$j];
@@ -1003,9 +1009,14 @@ sub predictORF {#{{{
 			$ids[$j] =~ s/_RF.*//;
 			#mp removed "\\b" from regex and added info line
 			#mp this regex would almost never work because headers are not trimmed anymore
-			print "running: \"grep -A 1 \">$ids[$j]\" $estfile |tail -n 1\"\n" if $debug;	#mp
+			#mp
+			#mp TODO Problem: Sonderzeichen vs. \b
 			#mp added -F flag for fixed-string search. potentially dangerous :/
-			my $est = `grep -F -A 1 ">$ids[$j]" $estfile |tail -n 1`;	#mp get the sequence from the original EST file
+			#mp also this needs -m 1 because for multiple matches the last one would be used, 
+			#mp which may not always be the correct one
+			#my $est = `grep -F -m 1 -A 1 ">$ids[$j]" $estfile |tail -n 1`;	#mp get the sequence from the original EST file
+			print "Fetching original sequence for $ids[$j] from EST file...\n" if $debug; #mp
+			my $est = $untranslated_sequence_of->{$ids[$j]};
 			if (! $est) {
 				die "error in retrieval of est sequence for $ids[$j] in subroutine processHits\n";
 			}
@@ -1465,6 +1476,18 @@ sub save_cdna {#{{{
 	return 1;
 }#}}}
 #mp end sub save_cdna
+
+#mp sub: slurp_fasta
+#mp reads the content of a Fasta file into a hashref
+sub slurp_fasta {
+	my $fastafile = shift @_;
+	my $data = { };
+	my $fastafh = Seqload::Fasta->open($fastafile);
+	while (my ($h, $s) = $fastafh->next_seq()) {
+		$data->{$h} = $s;
+	}
+	return $data;
+}
 
 #mp Documentation moved to the bottom for improved readability
 
