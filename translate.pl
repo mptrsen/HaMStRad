@@ -34,10 +34,10 @@ Synopsis:\n\ttranslate_tc5.pl [-infile=FILE] [options] [-outfile=FILE]\n
 Description:\n\tThis program takes a batch fasta-file with DNA
 \tsequences as an input and translates the individual DNA sequences in
 \tall six reading frames.
-\t-infile: provide the relative or absolute path of the infile\n
-\t-outfile: provide the realtive or absolute path of the
+\t-infile=INFILE: provide the relative or absolute path of the infile\n
+\t-outfile=OUTFILE: provide the realtive or absolute path of the
 \toutfile. Default is: translate_tc.out\n
-\ttrunc: set -trunc=0 to prevent truncation of the sequence header (see below).
+\ttrunc: set this flag to prevent truncation of the sequence header (see below).
 \t-h: prints this help-message\n
 NOTE: if the seq-id (everything up to the first [[:space:]]) contains a '|' everything between the '>' and the '|' will be taken as seq-id. Otherwise, the entire seq-id will be used. You can change this behavior by setting -trunc=0\n
 NOTE: the script as an automated routine to check for unique sequence names in the input file. This may lead to cases where the $trunc value is overruled and additionally part of the sequence description may be included.";
@@ -47,7 +47,7 @@ GetOptions (
     "h" => \$help,
     "infile=s" => \$infile,
     "outfile=s" => \$outfile,
-    "trunc=s" => \$trunc);
+    "trunc" => \$trunc);
 if ($help) {
 	print "$usage";
 	exit;
@@ -74,7 +74,7 @@ my ($message, $cont, $check) = &checkIds();
 if ($cont == 1) {
     ## the check for unique identifiers has failed and the programm is exiting
     print LOG "$message\n";
-	exit;
+	die "$message\n";
 }
 else {
     print LOG "All sequence identifier are unique!\n";
@@ -143,7 +143,21 @@ sub checkIds {
 	## for $check == 1, the complete id will be checked
 	## for $check == 2, the first 20 characters of the concatenated id and description
 	## will be checked
-	if ($trunc == 1) {
+	if ($trunc) {
+		#mp check for uniqueness even if not truncating headers
+		my %seen;
+		foreach my $seqobj (@seq_object) {
+			if ($seen{$seqobj->display_id}) {
+				my $badid = $seqobj->display_id;
+				$message = "sequence IDs are not unique in the file $infile. The offending identfier is '$badid'\n\n";
+				print LOG $message;
+				$check = 1;
+				$cont = 1;
+				return($message, $cont, $check);
+			}
+			++$seen{$seqobj->display_id};
+		}
+		#mp end check for uniqueness
 		$check = 0;
 	}
     

@@ -31,7 +31,7 @@ use Seqload::Fasta; #mp
 
 # PROGRAM DESCRIPTION: See bottom of this file.
 ######################## start main #############################
-my $version = 1.0;	#mp yay
+my $version = 1.4;	#mp yay
 ### EDIT THE FOLLOWING LINES TO CUSTOMIZE YOUR SCRIPT
 ## note: all the variables can also be set via the command line
 my $hmmsearchprog = 'hmmsearch'; #program for the hmm search
@@ -159,7 +159,7 @@ if ($help) {
 push @log, "$0 version $version\n";
 my $hostname = `hostname`;
 chomp $hostname;
-print "$0 $version\n";
+print "$0 version $version\n";
 print "hostname is $hostname\n";
 push @log, "HOSTNAME\n\t$hostname\n";
 #################################
@@ -168,10 +168,10 @@ $wiseprog = $use_exonerate ? 'exonerate' : 'genewise';
 ## 1) check if all information is available to run HaMStR
 ($check, @log) = &checkInput();
 if ($check == 0) {
+  print join "\n", @log, "\n";	#mp moved this to the top
   print "$helpmessage";
   print "#######################################\n";
   print "There was an error running $0 $version\n";
-  print join "\n", @log;
   exit;
 }
 else {
