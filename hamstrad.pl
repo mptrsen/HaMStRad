@@ -146,7 +146,8 @@ GetOptions ("h"        => \$help,
 						"use_exonerate" => \$use_exonerate,	#mp
 						"ncpu=i" => \$ncpu, #mp number of CPUs that can be used by hmmsearch
 						"blast_prog=s" => \$blast_prog,	#mp
-						"clustal_prog=s" => \$alignmentprog	#mp
+						"clustal_prog=s" => \$alignmentprog,	#mp
+						"version|v" => \$showversion,	#mp
 );	#mp
 
 
@@ -160,6 +161,7 @@ push @log, "$0 version $version\n";
 my $hostname = `hostname`;
 chomp $hostname;
 print "$0 version $version\n";
+if ($showversion) { exit }	#mp print only the version if requested
 print "hostname is $hostname\n";
 push @log, "HOSTNAME\n\t$hostname\n";
 #################################
