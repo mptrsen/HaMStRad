@@ -113,6 +113,7 @@ my $exonerate_dir;
 my $genewise_dir;
 my $skipcount = 0;	#mp
 my $couplecount = 0;	#mp
+my $showversion = 0;	#mp
 
 if (@ARGV==0) {
 	$help = 1;
