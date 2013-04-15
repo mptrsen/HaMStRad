@@ -31,11 +31,13 @@ use Seqload::Fasta; #mp
 
 # PROGRAM DESCRIPTION: See bottom of this file.
 ######################## start main #############################
-my $version = 1.4;	#mp yay
+my $version = '1.05';	#mp yay
 ### EDIT THE FOLLOWING LINES TO CUSTOMIZE YOUR SCRIPT
 ## note: all the variables can also be set via the command line
 my $hmmsearchprog = 'hmmsearch'; #program for the hmm search
-my $wiseprog = 'genewise';	#mp change with -use_exonerate
+my $genewise = 'genewise'; #mp
+my $exonerate = 'exonerate'; #mp
+my $wiseprog = $genewise;	#mp change with -use_exonerate
 my $alignmentprog = 'clustalw2';	#mp may be 'clustalw' or 'clustalw2'
 
 ########## EDIT THE FOLLOWING TWO LINES TO CHOOSE YOUR BLAST PROGRAM ##########
@@ -166,7 +168,7 @@ if ($showversion) { exit }	#mp print only the version if requested
 print "hostname is $hostname\n";
 push @log, "HOSTNAME\n\t$hostname\n";
 #################################
-$wiseprog = $use_exonerate ? 'exonerate' : 'genewise';
+$wiseprog = $use_exonerate ? $exonerate : $genewise; #mp
 
 ## 1) check if all information is available to run HaMStR
 ($check, @log) = &checkInput();
