@@ -22,7 +22,7 @@ my $help;
 my @out;
 my @estout;
 my $infile;
-my $trunc = 1;
+my $trunc = 0;
 my $outfile = "translate_tc.out";
 my $limit = 20; ## this sets the maximum length for the sequence identifier. If sequence identifier are
 ## too long, then one can run into troubles with the parsing of the hmmsearch results.
@@ -143,35 +143,17 @@ sub checkIds {
 	## for $check == 1, the complete id will be checked
 	## for $check == 2, the first 20 characters of the concatenated id and description
 	## will be checked
-	if ($trunc) {
-		#mp check for uniqueness even if not truncating headers
-		my %seen;
-		foreach my $seqobj (@seq_object) {
-			if ($seen{$seqobj->display_id}) {
-				my $badid = $seqobj->display_id;
-				$message = "sequence IDs are not unique in the file $infile. The offending identfier is '$badid'\n\n";
-				print LOG $message;
-				$check = 1;
-				$cont = 1;
-				return($message, $cont, $check);
-			}
-			++$seen{$seqobj->display_id};
-		}
-		#mp end check for uniqueness
-		$check = 0;
-	}
-    
 	while ($check < 3 and $cont == 1) {
 		$cont = 0;
 		for (my $i=0; $i < @seq_object; $i++) {
 			my $id = $seq_object[$i]->display_id;
-			$id =~ s/(.{0,$limit}).*/$1/;
+			if ($trunc) { $id =~ s/(.{0,$limit}).*/$1/ }	#mp only truncate if $trunc is set
 			if ($check == 0) {
 				$id =~ s/|.*//;
 			}
 			elsif ($check == 2) {
 				$id = $id . '_' . $seq_object[$i]->desc;
-				$id =~ s/(.{0,$limit}).*/$1/;
+				if ($trunc) { $id =~ s/(.{0,$limit}).*/$1/ }	#mp only truncate if $trunc is set
 			}
 			if (defined $counter->{$id}) {
 				if ($check == 0) {
@@ -195,6 +177,24 @@ sub checkIds {
 			}
 		}
 	}
+	if ($trunc) {
+		#mp check for uniqueness if truncating headers
+		my %seen;
+		foreach my $seqobj (@seq_object) {
+			if ($seen{$seqobj->display_id}) {
+				my $badid = $seqobj->display_id;
+				$message = "sequence IDs are not unique in the file $infile. The offending identfier is '$badid'\n\n";
+				print LOG $message;
+				$check = 1;
+				$cont = 1;
+				return($message, $cont, $check);
+			}
+			++$seen{$seqobj->display_id};
+		}
+		#mp end check for uniqueness
+		$check = 0;
+	}
+
 	## return the value of $cont. If this is 1, then the sequence id check has failed. 
 	return($message, $cont, $check);
 }

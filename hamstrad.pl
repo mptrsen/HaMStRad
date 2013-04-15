@@ -419,7 +419,7 @@ sub checkInput {#{{{
 			if (defined $longhead) {
 				`sed -i -e "s/[[:space:]]\\+/$idsep/g" -e 's/\\(>.\\{20\\}\\).*/\\1/' $dbfile`;
 
-				push @log, "\tOption -longhead was chosen. Replaced whitespaces in the sequence identifier with '$idsep'\n";
+				push @log, "\tOption -longhead was chosen. Replaced whitespaces in the sequence identifier with '$idsep' and truncated to 20 characters\n";	#mp added truncation info
 			}
 		}
 		else {
