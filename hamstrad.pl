@@ -31,7 +31,7 @@ use Seqload::Fasta; #mp
 
 # PROGRAM DESCRIPTION: See bottom of this file.
 ######################## start main #############################
-my $version = '1.05';	#mp yay
+my $version = '1.06';	#mp yay
 ### EDIT THE FOLLOWING LINES TO CUSTOMIZE YOUR SCRIPT
 ## note: all the variables can also be set via the command line
 my $hmmsearchprog = 'hmmsearch'; #program for the hmm search
