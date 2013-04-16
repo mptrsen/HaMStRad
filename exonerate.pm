@@ -10,7 +10,6 @@ sub new {#{{{
 	my $self;
 	my ($class, $dna, $prot, $path) = @_;
 	$path = '/tmp' unless defined $path;
-	print "Creating new exonerate object\n";
 	my $pid = $$;
 	my $protname = $pid . '_protein';
 	my $dnaname = $pid . '_dna';

@@ -319,7 +319,7 @@ for (my $i = 0; $i < @hmms; $i++) {
 					}
 				}
       }
-      my $refs = $co_seqs->{$query_name};
+      my $refs = $co_seqs->{$query_name};	#mp core ortholog seqs for this query (HMM)
       for (keys %$refs) {	#mp apparently only print cds if -est option was selected
 				my $line = ">$query_name|$_|" . $refs->{$_}->{seqid} . "\n" . $refs->{$_}->{seq};
 				push @seqs, $line;
@@ -933,6 +933,7 @@ sub determineReferences {#{{{
 				my $refspec_cand = $refspec_final->[$i]->{refspec};
 				my $score = &getAlignmentScore($refseq_cand, $hitseq);
 				if ($score > $max_score) {
+					print "Alignment score: $score: setting refspec to $refspec_cand\n";
 					$refspec = $refspec_cand;
 					$refseq = $refseq_cand;
 					$max_score = $score;
