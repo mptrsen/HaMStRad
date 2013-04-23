@@ -31,7 +31,7 @@ use Seqload::Fasta; #mp
 
 # PROGRAM DESCRIPTION: See bottom of this file.
 ######################## start main #############################
-my $version = '1.06';	#mp yay
+my $version = '1.07';	#mp yay
 ### EDIT THE FOLLOWING LINES TO CUSTOMIZE YOUR SCRIPT
 ## note: all the variables can also be set via the command line
 my $hmmsearchprog = 'hmmsearch'; #program for the hmm search
@@ -1012,7 +1012,7 @@ sub predictORF {#{{{
 			## determine the reading frame and remove the info from the ID
 			my ($rf) = $ids[$j] =~ /.*_RF([0-9]+)/;
 			print "Predicting ORF for hit $ids[$j] (RF $rf)\n";
-			$ids[$j] =~ s/_RF.*//;
+			$ids[$j] =~ s/_RF\d\.\d$//;	#mp modified regex to avoid problems with headers ending on '_RF'
 			#mp removed "\\b" from regex and added info line
 			#mp this regex would almost never work because headers are not trimmed anymore
 			#mp
