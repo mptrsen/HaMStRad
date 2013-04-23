@@ -412,7 +412,7 @@ sub checkInput {#{{{
 		print "removing newlines from the infile $dbfile such that a sequence forms a consecutive string\n";
 		`../bin/nentferner.pl -in=$dbfile -out=$dbfile.mod`;
 		if (-e "$dbfile.mod") {
-			print "Newlines from the infile have been removedpl succeeded.\n";
+			print "Newlines from the infile have been removed.\n";	#mp corrected typo
 			push @log, "\tNewlines from the infile have been removed\n";
 			$dbfile = $dbfile . '.mod';
 			
@@ -1118,7 +1118,7 @@ sub orfRanking {#{{{
 			close OUT;
 
 			## run clustalw	#mp
-			print "running '$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log'\n" if $debug;	#mp added debug msg
+			print "running '$alignmentprog -infile=$tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log'\n" if $debug;	#mp added debug msg
 			!(`$alignmentprog -infile=$tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running $alignmentprog\: $!\n";	#mp added error message
 			## get the alignment score
 			$result->[$i]->{score} =  `grep "Alignment Score" $tmpdir/$pid.ref.log |sed -e 's/[^0-9]//g'`;	#mp don't use external grep/sed :P
@@ -1374,8 +1374,8 @@ sub getAlignmentScore{ #{{{
     print OUT join "\n", @testseq;
     close OUT;
     ## run clustalw
-		print "running '$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log'\n" if $debug;	#mp added debug msg
-    !(`$alignmentprog $tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running clustalw\n";
+		print "running '$alignmentprog -infile=$tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log'\n" if $debug;	#mp added debug msg 
+    !(`$alignmentprog -infile=$tmpdir/$pid.ref.fa -output=fasta -outfile=$tmpdir/$pid.ref.aln 2>&1 >$tmpdir/$pid.ref.log`) or die "error running clustalw\n";	#mp added -infile=
     ## get the alignment score
     my $score =  `grep "Alignment Score" $tmpdir/$pid.ref.log |sed -e 's/[^0-9]//g'`;
     if (!$score) {
