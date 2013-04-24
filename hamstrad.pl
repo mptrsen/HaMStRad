@@ -677,6 +677,8 @@ sub checkInput {#{{{
 	$relaxed_string = defined($relaxed) ? 'relaxed_' : '';
 
   $output_dir = File::Spec->catdir($dbfile_short . '_' . $hmmset . '_' . $strictstring . $relaxed_string . join('_', @refspec));	#mp 
+	push @log, "Using output directory $output_dir";	#mp
+	print "Using output directory $output_dir\n";	#mp 
 
 	$aa_dir = File::Spec->catdir($output_dir, 'aa');	#mp File::Spec
 	$nt_dir = File::Spec->catdir($output_dir, 'nt');	#mp File::Spec
