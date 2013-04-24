@@ -231,8 +231,8 @@ for (my $i = 0; $i < @hmms; $i++) {
 #	$results[0] = $keep;
 #}
   chomp $query_name;
-  print "Results for HMM $query_name (Hits: ";	#mp inserted "HMM"
-	print join(", ", @results), ")\n" if $debug;	#mp extended report
+  print "Results for HMM $query_name\n";	#mp inserted "HMM"
+	print "Hits: ", join(", ", @results), "\n" if $debug;	#mp extended report
   my ($check, $refspec_final) = &determineRefspecFinal($query_name, @refspec);
   if ($check == 0) {
     die "error in retrieving refspec data\n";
