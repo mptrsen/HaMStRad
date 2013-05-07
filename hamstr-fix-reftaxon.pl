@@ -69,13 +69,6 @@ foreach my $inf (@infiles) {
 	my $header = first { /.*\|.*\|.*\|.*/ } keys %$seq_of;
 	my ($geneid, $coretaxon, $taxon, $id) = split /\|/, $header;
 
-	# did it get the correct reftaxon? if so, just exit
-	if ($coretaxon =~ /\Q$taxon\E/) {
-		print "$inf is ok\n";
-		next;
-	}
-	printf "%s: seems strange, reformatting...\n", basename($inf);
-
 	# take it out of the sequence pool
 	my $sequence = delete $seq_of->{$header};
 
@@ -97,7 +90,7 @@ foreach my $inf (@infiles) {
 	undef $outfh;
 	
 	# report
-	printf "%s: corrected reftaxon for %s to %s (was: %s)\n", basename($outf), $taxon, $hiscoretaxon, $coretaxon;
+	printf "%s: reftaxon for %s is %s (was: %s)\n", basename($outf), $taxon, $hiscoretaxon, $coretaxon;
 }
 
 
