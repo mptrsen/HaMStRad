@@ -224,34 +224,3 @@ sub DESTROY {
   my $self = shift;
   $self->close;
 }
-
-# Convert a fasta file to a csv file the easy way
-# Usage: Seqload::Fasta::fasta2csv($fastafile, $csvfile);
-sub fasta2csv {
-  my $fastafile = shift;
-  my $csvfile = shift;
-
-  my $fastafh = Seqload::Fasta->open($fastafile);
-  CORE::open(my $outfh, '>', $csvfile)
-    or confess "Fatal: Could not open $csvfile\: $!\n";
-  while (my ($hdr, $seq) = $fastafh->next_seq) {
-		$hdr =~ s/,/_/g;	# remove commas from header, they mess up a csv file
-    print $outfh $hdr . ',' . $seq . "\n"
-			or confess "Fatal: Could not write to $csvfile\: $!\n";
-  }
-  CORE::close $outfh;
-  $fastafh->close;
-
-  return 1;
-}
-
-# validates a fasta file by looking at the FIRST (header, sequence) pair
-# arguments: scalar string path to file
-# returns: true on validation, false otherwise
-sub check_if_fasta {
-	my $infile = shift;
-	my $infh = Seqload::Fasta->open($infile);
-	my ($h, $s) = $infh->next_seq() or return 0;
-	return 1;
-}
-
