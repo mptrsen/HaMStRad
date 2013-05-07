@@ -982,9 +982,9 @@ sub processHits {#{{{
 #mp let's just test what happens if we only align ONE hit against the refspec
   for (my $i = 0; $i < @taxa; $i++) {
 		if ($fileobj->{$taxa[$i]}->{prot}) {
-			print "$taxa[$i] has prot defined, doing orfRanking...\n" if $debug;	#mp
+			print "$taxa[$i] has prot defined, doing orfRanking...\n" if $debug; #mp
 			&orfRanking($taxa[$i]);
-			last;	#mp TODO is this right ?
+			#last;	#mp TODO is this right ?
 		}
   }
 }  #}}}
@@ -1173,6 +1173,7 @@ sub sortRef {#{{{
 	open (OUT, ">$tmpdir/$pid.sort") or die "failed to write for sorting\n";
 	print OUT join "\n", @sort;
 	close OUT;
+
 	`sort -n -t ',' -k 2 $tmpdir/$pid.sort >$tmpdir/$pid.sort.out`;	#mp how the f*ck can you use the external sort instead of the builtin sort function?!
 	@sort = `less $tmpdir/$pid.sort`;	#mp WTF happened to reading a file with open()?
 	chomp @sort;
