@@ -15,11 +15,11 @@ hamstr-fix-reftaxon attempts to fix the reference taxon assignment that HaMStR m
 
 =head2 --inputdir DIR
 
-Input directory. Is expected to contain HaMStR output files (*.aa.fa). Mandatory option.
+Input directory. Is expected to contain HaMStR output files (*.aa.fa). If you do not specify an input directory, filenames are read from the argument list (command line).
 
 =head2 --outputdir DIR
 
-Output directory. Where the rewritten files should be placed. It is recommended not to use the same dir that you read from, but instead overwrite the affected files with their corrected copies afterwards. Mandatory option.
+Output directory. Where the rewritten files should be placed. It is recommended not to use the same dir that you read from, but instead overwrite the affected files with their corrected copies afterwards. If you do not specify an output directory, the input files will be corrected in-place, i.e., safely overwritten.
 
 =head2 --clustalw /path/to/clustalw
 
@@ -35,9 +35,10 @@ use strict;
 use warnings;
 use autodie;
 
+use File::Basename;
+use File::Copy;
 use File::Spec;
 use File::Temp;
-use File::Basename;
 use Getopt::Long;
 use IO::Dir;
 use IO::File;
@@ -46,6 +47,7 @@ use List::Util qw(first);
 my $clustalw = 'clustalw';
 my $outdir = undef;
 my $indir = undef;
+my @infiles = ();
 
 GetOptions(
 	'clustalw=s' => \$clustalw,
@@ -53,13 +55,14 @@ GetOptions(
 	'inputdir=s' => \$indir,
 );
 
-unless ($indir and $outdir) {
-	print "Usage: $0 --inputdir INPUTDIR --outputdir OUTPUTDIR [--clustalw /path/to/clustalw]\n";
-	exit;
+if ($indir) {
+	# get list of input files
+	@infiles = get_files($indir);
 }
 
-# get list of input files
-my @infiles = get_files($indir);
+else {
+	@infiles = @ARGV;
+}
 
 foreach my $inf (@infiles) {
 	# read sequences into memory
@@ -82,13 +85,22 @@ foreach my $inf (@infiles) {
 	$header = sprintf "%s|%s|%s|%s", $geneid, $hiscoretaxon, $taxon, $id;
 
 	# output
-	my $outf = File::Spec->catfile($outdir, basename($inf));
-	my $outfh = IO::File->new($outf, 'w') or die "Fatal: could not open $outf for writing: $!\n";
+	my $outf = undef;
+	my $outfh = undef;
+	# if outdir was specified
+	if ($outdir) {
+		$outf = File::Spec->catfile($outdir, basename($inf));
+	}
+	# otherwise, overwrite the existing file
+	else {
+		$outf = $inf;
+	}
+	$outfh = IO::File->new($outf, 'w') or die "Fatal: could not open $outf for writing: $!\n";
 	printf $outfh ">%s\n%s\n", $_, $seq_of->{$_} foreach keys %$seq_of;
 	printf $outfh ">%s\n%s\n", $hiscoreheader, $hiscoresequence;
 	printf $outfh ">%s\n%s\n", $header, $sequence;
 	undef $outfh;
-	
+
 	# report
 	printf "%s: reftaxon for %s is %s (was: %s)\n", basename($outf), $taxon, $hiscoretaxon, $coretaxon;
 }
@@ -110,7 +122,7 @@ sub get_files {
 		}
 	}
 	undef $aadirh;
-	@files = grep { /aa\.fa$/ } @files;
+	@files = grep { /\.fa$/ } @files;
 	return @files;
 }
 

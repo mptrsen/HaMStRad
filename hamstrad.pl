@@ -329,21 +329,25 @@ for (my $i = 0; $i < @hmms; $i++) {
       @seqs = (@seqs, @newseqs);	#mp y u no use push() like a sane person
 
 			#mp output
-      open (OUT, '>', File::Spec->catfile($aa_dir, "$query_name.aa.fa"));	#mp
+			my $aaoutfile = File::Spec->catfile($aa_dir, "$query_name.aa.fa");	#mp
+      open (OUT, '>', $aaoutfile) or die "Fatal: Could not open $cdsoutfile: $!\n";	#mp
       print OUT join "\n", @seqs;
       print OUT "\n";
       close OUT;
 
       if ($estflag) {	#mp apparently only print cds if -est option was selected
 
+				my $cdsoutfile = File::Spec->catfile($cds_dir, $query_name . '.cds.fa');	#mp
+				my $cdnaoutfile = File::Spec->catfile($nt_dir, $query_name . '.nt.fa');	#mp
+
 				#mp more output
-				open (OUT, '>', File::Spec->catfile($cds_dir, $query_name . '.cds.fa')) or die "Fatal: Could not open " . File::Spec->catfile($cds_dir, "$query_name.cds.fa") . ": $!\n";
+				open (OUT, '>', $cdsoutfile) or die "Fatal: Could not open $cdsoutfile: $!\n";	#mp
 				print OUT join("\n", @newcds) . "\n";	#mp added newline
 				close OUT;
 
 				#mp output cdna to cdna file
 				if ($use_exonerate) {
-					open (OUT, '>', File::Spec->catfile($nt_dir, $query_name . '.nt.fa')) or die "Fatal: Could not open $nt_dir/$query_name.nt.fa: $!\n";
+					open (OUT, '>', $cdnaoutfile) or die "Fatal: Could not open $cdnaoutfile: $!\n";	#mp
 					print OUT join("\n", @newcdna) . "\n";	#mp added newline
 					close OUT;
 				}
