@@ -144,7 +144,7 @@ sub get_real_coretaxon {
 		my $result = [ `$clustalw -infile=$fh -outfile=$outfh` ];
 		chomp @$result;
 		my $score = first { $_ =~ /Alignment Score/ } @$result;
-		$score =~ /Score\s*(\d+)/ and $score = $1;
+		$score =~ /Score\s*(-?\d+)/ and $score = $1;
 		if ($score > $hiscore) {
 			$hiscore = $score;
 			$hiscoretaxon = $taxon;
