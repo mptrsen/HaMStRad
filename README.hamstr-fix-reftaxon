@@ -1,0 +1,3 @@
+README for hamstr-fix-reftaxon.pl
+
+This script re-assigns reference taxa for the Hamstrad output sequence. It does so by pairwisely aligning the output sequence against all core taxa sequences and assigning the reference taxon with the highest scoring alignment. It then rewrites the output files (aa, nt, log) into another directory with the correct headers.

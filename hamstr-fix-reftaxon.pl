@@ -37,15 +37,23 @@ use autodie;
 
 use File::Basename;
 use File::Copy;
-use File::Spec;
+use File::Find;
+use File::Path qw( make_path remove_tree ); # this also uses File::Spec
 use File::Temp;
 use Getopt::Long;
 use IO::Dir;
 use IO::File;
 use List::Util qw(first);
+use Data::Dumper;
 
 my $clustalw = 'clustalw';
 my $outdir = undef;
+my $aaoutdir = undef;
+my $ntoutdir = undef;
+my $logoutdir = undef;
+my $aaindir = undef;
+my $ntindir = undef;
+my $logindir = undef;
 my $indir = undef;
 my @infiles = ();
 
@@ -57,12 +65,33 @@ GetOptions(
 
 if ($indir) {
 	# get list of input files
-	@infiles = get_files($indir);
+	$aaindir = File::Spec->catdir($indir, 'aa');
+	$ntindir = File::Spec->catdir($indir, 'nt');
+	$logindir = File::Spec->catdir($indir, 'log');
+	unless (-d $aaindir) { die "Fatal: not a directory: $aaindir\n" }
+	unless (-d $ntindir) { die "Fatal: not a directory: $ntindir\n" }
+	@infiles = get_files($aaindir);
+	if (scalar @infiles == 0) { die "Fatal: empty directory $aaindir\n" }
+}
+else {
+	print "Usage: $0 --inputdir INPUTDIR --outputdir OUTPUTDIR\n" and exit;
 }
 
-else {
-	@infiles = @ARGV;
+if ($outdir) {
+	$aaoutdir = File::Spec->catdir($outdir, 'aa');
+	unless (-d $aaoutdir) { make_path($aaoutdir) or die "Fatal: could not create $aaoutdir: $!\n" }
+	$ntoutdir = File::Spec->catdir($outdir, 'nt');
+	unless (-d $ntoutdir) { make_path($ntoutdir) or die "Fatal: could not create $ntoutdir: $!\n" }
+	$logoutdir = File::Spec->catdir($outdir, 'log'); 
+	unless (-d $logoutdir) { make_path($logoutdir) or die "Fatal: could not create $logoutdir: $!\n" }
 }
+else {
+	print "Usage: $0 --inputdir INPUTDIR --outputdir OUTPUTDIR\n" and exit;
+}
+
+my ($logfile, $cdslogfile) = get_logfiles($logindir);
+my $logfh = IO::File->new(File::Spec->catfile($logoutdir, basename($logfile)), 'w');
+my $cdslogfh = IO::File->new(File::Spec->catfile($logoutdir, basename($cdslogfile)), 'w');
 
 foreach my $inf (@infiles) {
 	# read sequences into memory
@@ -82,46 +111,81 @@ foreach my $inf (@infiles) {
 	# this is so we can write those back in order
 
 	# format the header
-	$header = sprintf "%s|%s|%s|%s", $geneid, $hiscoretaxon, $taxon, $id;
+	my $new_header = sprintf "%s|%s|%s|%s", $geneid, $hiscoretaxon, $taxon, $id;
 
 	# output
-	my $outf = undef;
+	my $aaoutf = undef;
+	my $ntoutf = undef;
 	my $outfh = undef;
-	# if outdir was specified
-	if ($outdir) {
-		$outf = File::Spec->catfile($outdir, basename($inf));
-	}
-	# otherwise, overwrite the existing file
-	else {
-		$outf = $inf;
-	}
-	$outfh = IO::File->new($outf, 'w') or die "Fatal: could not open $outf for writing: $!\n";
+
+	$aaoutf = File::Spec->catfile($aaoutdir, basename($inf));
+
+	$outfh = IO::File->new($aaoutf, 'w') or die "Fatal: could not open $aaoutf for writing: $!\n";
 	printf $outfh ">%s\n%s\n", $_, $seq_of->{$_} foreach keys %$seq_of;
 	printf $outfh ">%s\n%s\n", $hiscoreheader, $hiscoresequence;
-	printf $outfh ">%s\n%s\n", $header, $sequence;
+	printf $outfh ">%s\n%s\n", $new_header, $sequence;
 	undef $outfh;
 
+	# rewrite the nucleotide file correspondingly
+	rewrite_nucfile($inf, $ntoutdir, $header, $hiscoretaxon);
+
+	printf $logfh "%s|%s\n", $new_header, $sequence;
 	# report
-	printf "%s: reftaxon for %s is %s (was: %s)\n", basename($outf), $taxon, $hiscoretaxon, $coretaxon;
+	printf "%s: reftaxon for %s is %s (was: %s)\n", basename($aaoutf), $taxon, $hiscoretaxon, $coretaxon;
 }
 
 
-# get a list of (*.aa.fa) files in the the dir
+sub rewrite_nucfile {
+	my $f = basename( shift @_ );
+	my $outdir = shift @_;
+	my ($header, $hiscoretaxon) = @_;
+	$f =~ s/\.aa\./.nt./;
+	my $outf = File::Spec->catfile($outdir, $f);
+
+	# it's only a single sequence
+	my $ntseqs = slurp_fasta( File::Spec->catfile($ntindir, $f) );
+	my $sequence = delete $ntseqs->{$header};
+
+	# generate the real header
+	my ($geneid, $coretaxon, $taxon, $id) = split /\|/, $header;
+	my $real_header = sprintf "%s|%s|%s|%s", $geneid, $hiscoretaxon, $taxon, $id;
+
+	# write the sequence to file
+	my $fh = IO::File->new(File::Spec->catfile($outf), 'w') or die "Fatal: could not open $outf for writing: $!\n";
+	printf $fh ">%s\n%s\n", $real_header, $sequence;
+	undef $fh;
+
+	printf $cdslogfh "%s|%s\n", $real_header, $sequence;
+}
+
+sub get_logfiles {
+	my $indir = shift @_;
+	my @logfiles = ();
+	find( sub { push @logfiles, $File::Find::name if /^hamstr.*\.out$/ }, $indir);
+	if (scalar @logfiles != 2) {
+		die "Fatal: missing log files in $indir\n";
+	}
+	my $cdslogfile = first { /cds\.out$/ } @logfiles;
+	my $logfile = first { ! /cds\.out$/ } @logfiles;
+	return ($logfile, $cdslogfile);
+}
+
+# get a list of (*.fa) files in the the dir
 # call: get_files($dirname)
 # returns: list of scalar string filenames
 sub get_files {
 	my $dirn = shift @_;
-	my $aadirh = IO::Dir->new($dirn);
-	die "Fatal: could not open dir $dirn\: $!\n" unless defined $aadirh;
+	my $dirh = IO::Dir->new($dirn);
+	die "Fatal: could not open dir $dirn\: $!\n" unless defined $dirh;
 	my @files = ();
-	while (my $f = $aadirh->read) {
+	while (my $f = $dirh->read) {
 		# skip stuff starting with a dot
 		next if $f =~ /^\./;
 		if (-f File::Spec->catfile($dirn, $f)) {
 			push @files, File::Spec->catfile($dirn, $f);
 		}
 	}
-	undef $aadirh;
+	undef $dirh;
 	@files = grep { /\.fa$/ } @files;
 	return @files;
 }
