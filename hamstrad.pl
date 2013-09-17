@@ -330,7 +330,7 @@ for (my $i = 0; $i < @hmms; $i++) {
 
 			#mp output
 			my $aaoutfile = File::Spec->catfile($aa_dir, "$query_name.aa.fa");	#mp
-      open (OUT, '>', $aaoutfile) or die "Fatal: Could not open $cdsoutfile: $!\n";	#mp
+      open (OUT, '>', $aaoutfile) or die "Fatal: Could not open $aaoutfile: $!\n";	#mp
       print OUT join "\n", @seqs;
       print OUT "\n";
       close OUT;
