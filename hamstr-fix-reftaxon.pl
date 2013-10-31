@@ -165,8 +165,8 @@ sub get_logfiles {
 	if (scalar @logfiles != 2) {
 		die "Fatal: missing log files in $indir\n";
 	}
-	my $cdslogfile = first { /cds\.out$/ } @logfiles;
-	my $logfile = first { ! /cds\.out$/ } @logfiles;
+	my $cdslogfile = first { /(cds\.out|cdsstrict_.out|strict_cds\.out)$/ } @logfiles;
+	my $logfile = first { ! /(cds\.out|cdsstrict_.out|strict_cds\.out)$/ } @logfiles;
 	return ($logfile, $cdslogfile);
 }
 
