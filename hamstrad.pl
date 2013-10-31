@@ -693,8 +693,8 @@ sub checkInput {#{{{
   $hmmsearch_dir = File::Spec->catdir($log_dir, 'hmmsearch');	#mp File::Spec
 	$exonerate_dir = File::Spec->catdir($log_dir, 'exonerate') if $use_exonerate;	#mp File::Spec
 	$genewise_dir = File::Spec->catdir($log_dir, 'genewise') unless $use_exonerate;	#mp added genewise output dir
-  $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $strictstring . $hmmset . '.out');	#mp File::Spec
-  $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $hmmset . $strictstring . '_cds' . '.out');	#mp File::Spec
+  $seqs2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $hmmset . $strictstring . '.out');	#mp File::Spec
+  $cds2store_file = File::Spec->catfile($log_dir, 'hamstrsearch_' . basename($dbfile_short) . '_' . $hmmset . '_cds' . $strictstring . '.out');	#mp File::Spec
   if ($check == 1) {
     if (!(-e "$hmmsearch_dir")) {
       `mkdir -p $hmmsearch_dir`;	#mp added -p flag to mkdir
