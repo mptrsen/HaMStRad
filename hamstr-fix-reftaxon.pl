@@ -39,7 +39,7 @@ use File::Basename;
 use File::Copy;
 use File::Find;
 use File::Path qw( make_path remove_tree ); # this also uses File::Spec
-use File::Temp;
+use File::Temp qw( cleanup );
 use Getopt::Long;
 use IO::Dir;
 use IO::File;
@@ -214,6 +214,8 @@ sub get_real_coretaxon {
 			$hiscoretaxon = $taxon;
 			$hiscoreheader = $_;
 		}
+		# cleanup temporary files
+		File::Temp::cleanup();
 	}
 
 	return ($hiscoretaxon, $hiscoreheader);
