@@ -1,4 +1,29 @@
 #!/usr/bin/perl
+#--------------------------------------------------
+# Copyright (c) 2013, Malte Petersen
+# All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met: 
+# 
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer. 
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution. 
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#-------------------------------------------------- 
+
 =head1 NAME
 
 hamstr-fix-reftaxon.pl
@@ -25,6 +50,10 @@ Output directory. Where the rewritten files should be placed. It is recommended 
 
 Path to clustalw executable. On some systems, this is called clustalw2, or is not in $PATH, or something else.
 
+=head2 --tmpdir /path/to/tempdir
+
+Path to temporary directory. This is where temporary files will be placed (they are removed as soon as they are not needed anymore). Defaults to /tmp.
+
 =head1 AUTHOR
 
 Malte Petersen <mptrsen@uni-bonn.de>
@@ -39,12 +68,10 @@ use File::Basename;
 use File::Copy;
 use File::Find;
 use File::Path qw( make_path remove_tree ); # this also uses File::Spec
-use File::Temp qw( cleanup );
 use Getopt::Long;
 use IO::Dir;
 use IO::File;
 use List::Util qw(first);
-use Data::Dumper;
 
 my $clustalw = 'clustalw';
 my $outdir = undef;
@@ -55,12 +82,14 @@ my $aaindir = undef;
 my $ntindir = undef;
 my $logindir = undef;
 my $indir = undef;
+my $tmpdir = undef;
 my @infiles = ();
 
 GetOptions(
 	'clustalw=s' => \$clustalw,
 	'outputdir=s' => \$outdir,
 	'inputdir=s' => \$indir,
+	'tmpdir=s' => \$tmpdir,
 );
 
 if ($indir) {
@@ -76,6 +105,8 @@ if ($indir) {
 else {
 	print "Usage: $0 --inputdir INPUTDIR --outputdir OUTPUTDIR\n" and exit;
 }
+
+$tmpdir //= '/tmp';
 
 if ($outdir) {
 	$aaoutdir = File::Spec->catdir($outdir, 'aa');
@@ -198,25 +229,37 @@ sub get_real_coretaxon {
 	my $hiscoretaxon = '';
 	my $hiscoreheader = '';
 
+	# generate a unique filename 
+	my $fnum = 1;
+	while (-f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in') or -f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out')) { $fnum++ }
+	my $inf  = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in');
+	my $outf = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out');
+
 	foreach (keys %$sequences) {
 		my ($geneid, $taxon, $id) = split /\|/;
-		my $fh = File::Temp->new();
+
+		# write sequences to temporary file
+		my $fh = IO::File->new($inf, 'w');
 		printf $fh ">%s\n%s\n", $_, $sequences->{$_};
 		printf $fh ">%s\n%s\n", $header, $sequence;
-		close $fh;
-		my $outfh = File::Temp->new();
-		my $result = [ `$clustalw -infile=$fh -outfile=$outfh` ];
+		undef $fh;
+
+		# get the alignment score
+		my $result = [ `$clustalw -infile=$inf -outfile=$outf` ];
 		chomp @$result;
 		my $score = first { $_ =~ /Alignment Score/ } @$result;
 		$score =~ /Score\s*(-?\d+)/ and $score = $1;
+
+		# determine high-scoring taxon
 		if ($score > $hiscore) {
-			$hiscore = $score;
-			$hiscoretaxon = $taxon;
+			$hiscore       = $score;
+			$hiscoretaxon  = $taxon;
 			$hiscoreheader = $_;
 		}
-		# cleanup temporary files
-		File::Temp::cleanup();
 	}
+
+	# cleanup temporary files
+	unlink $inf, $outf;
 
 	return ($hiscoretaxon, $hiscoreheader);
 }
