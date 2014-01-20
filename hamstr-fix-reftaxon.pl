@@ -62,7 +62,6 @@ Malte Petersen <mptrsen@uni-bonn.de>
 
 use strict;
 use warnings;
-use autodie;
 
 use File::Basename;
 use File::Copy;
@@ -230,16 +229,18 @@ sub get_real_coretaxon {
 	my $hiscoreheader = '';
 
 	# generate a unique filename 
-	my $fnum = 1;
-	while (-f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in') or -f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out')) { $fnum++ }
+	my $fnum = unique_hex(8);
+	while (-f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in') or -f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out')) { $fnum = unique_hex(8) }
 	my $inf  = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in');
 	my $outf = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out');
+	print "Input file: $inf\n";
+	print "Output file: $outf\n";
 
 	foreach (keys %$sequences) {
 		my ($geneid, $taxon, $id) = split /\|/;
 
 		# write sequences to temporary file
-		my $fh = IO::File->new($inf, 'w');
+		my $fh = IO::File->new($inf, 'w') or die "Fatal: could not open file '$inf' for writing: $!\n";
 		printf $fh ">%s\n%s\n", $_, $sequences->{$_};
 		printf $fh ">%s\n%s\n", $header, $sequence;
 		undef $fh;
@@ -259,9 +260,16 @@ sub get_real_coretaxon {
 	}
 
 	# cleanup temporary files
-	unlink $inf, $outf;
+	unlink($inf, $outf) or die "Fatal: could not unlink '$inf', '$outf': $!\n";
 
 	return ($hiscoretaxon, $hiscoreheader);
+}
+
+# sub: unique_hex
+# generates a random hex string of given length
+sub unique_hex {
+	my $len = shift @_;
+	return sprintf "%x", int rand (2 ** (4 * $len));
 }
 
 #mp sub: slurp_fasta
