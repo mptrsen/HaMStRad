@@ -1,17 +1,27 @@
 README file for the HaMStRad package
 
 HaMStRad (HaMStR advanced) is an extension package for the HaMStR orthology
-prediction pipeline (Ebersberger 2009) version 8b. It mainly adds bugfixes and the ability
-to output frameshift-corrected, corresponding nucleotide sequences using
-Exonerate (Eddy 2005). These changes are implemented using a few additional
-modules.
+prediction pipeline (Ebersberger 2009) version 8b. It mainly adds bugfixes and
+the ability to output frameshift-corrected, corresponding nucleotide sequences
+using Exonerate (Eddy 2005). These changes are implemented using a few
+additional modules.
 
-The package also contains a program that is designed to correct the suspicious
+To use this improved version, you still need the actual HaMStR package from
+[1]. Unpack the contents of this package into the bin directory of the HaMStR
+directory tree, overwriting existing files. Usage instructions and more
+information on the pipeline are in the HaMStR README. The most important
+additional option is '--use_exonerate', which enables usage of the alignment
+program Exonerate in order to provide a correct nucleotide sequence output.
+
+This package also contains a program that is designed to correct the suspicious
 behaviour of assigning the wrong reference taxon that HaMStR displays when run
-on one of the core taxa (see the HaMStR documentation and the paper for
-definition). The program hamstr-fix-reftaxon.pl basically takes the output
-sequence and does a pairwise ClustalW alignment against each core taxon
-sequence. The core taxon with the best alignment score will be assigned as
-reference taxon. The output file is rewritten using the correct information.
+on one of the reference taxa (see the HaMStR documentation, there so-called
+'core' or 'primer' taxa and the paper for definition). The program
+hamstr-fix-reftaxon.pl basically takes the output sequence and does a pairwise
+ClustalW alignment against each reference taxon sequence. The reference taxon
+sequence with the best alignment score will be selected. The output files are
+rewritten using the correct information.
 
-Refer to `perldoc hamstr-fix-reftaxon.pl` for usage instructions.
+Run `perldoc hamstr-fix-reftaxon.pl` for usage instructions.
+
+[1]: http://www.deep-phylogeny.org/hamstr/download/archive/hamstrsearch_local_v8b.tar.gz
