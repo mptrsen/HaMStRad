@@ -107,13 +107,17 @@ else {
 
 $tmpdir //= '/tmp';
 
+# create output directories
 if ($outdir) {
 	$aaoutdir = File::Spec->catdir($outdir, 'aa');
-	unless (-d $aaoutdir) { make_path($aaoutdir) or die "Fatal: could not create $aaoutdir: $!\n" }
 	$ntoutdir = File::Spec->catdir($outdir, 'nt');
-	unless (-d $ntoutdir) { make_path($ntoutdir) or die "Fatal: could not create $ntoutdir: $!\n" }
 	$logoutdir = File::Spec->catdir($outdir, 'log'); 
+	unless (-d $aaoutdir) { make_path($aaoutdir) or die "Fatal: could not create $aaoutdir: $!\n" }
+	else { print "Using existing output dir $aaoutdir\n" }
+	unless (-d $ntoutdir) { make_path($ntoutdir) or die "Fatal: could not create $ntoutdir: $!\n" }
+	else { print "Using existing output dir $ntoutdir\n" }
 	unless (-d $logoutdir) { make_path($logoutdir) or die "Fatal: could not create $logoutdir: $!\n" }
+	else { print "Using existing dir $logoutdir\n" }
 }
 else {
 	print "Usage: $0 --inputdir INPUTDIR --outputdir OUTPUTDIR\n" and exit;
@@ -229,10 +233,23 @@ sub get_real_coretaxon {
 	my $hiscoreheader = '';
 
 	# generate a unique filename 
+<<<<<<< HEAD
 	my $fnum = unique_hex(8);
 	while (-f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in') or -f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out')) { $fnum = unique_hex(8) }
 	my $inf  = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in');
 	my $outf = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out');
+=======
+	my $fnum  = unique_hex(8);
+	my $inf   = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in');
+	my $outf  = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out');
+	my $treef = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.dnd');
+	while (-f $inf or -f $outf) {
+		$fnum  = unique_hex(8);
+		$inf   = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in');
+		$outf  = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out');
+		$treef = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.dnd');
+	}
+>>>>>>> f6f347e1b5689e80a1d59dee2159f315c2c22127
 
 	foreach (keys %$sequences) {
 		my ($geneid, $taxon, $id) = split /\|/;
@@ -258,7 +275,7 @@ sub get_real_coretaxon {
 	}
 
 	# cleanup temporary files
-	unlink($inf, $outf) or die "Fatal: could not unlink '$inf', '$outf': $!\n";
+	unlink($inf, $outf, $treef) or warn "Warning: could not unlink '$inf', '$outf', '$treef': $!\n";
 
 	return ($hiscoretaxon, $hiscoreheader);
 }
