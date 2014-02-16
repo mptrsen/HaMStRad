@@ -233,8 +233,6 @@ sub get_real_coretaxon {
 	while (-f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in') or -f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out')) { $fnum = unique_hex(8) }
 	my $inf  = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in');
 	my $outf = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out');
-	print "Input file: $inf\n";
-	print "Output file: $outf\n";
 
 	foreach (keys %$sequences) {
 		my ($geneid, $taxon, $id) = split /\|/;
