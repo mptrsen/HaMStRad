@@ -233,12 +233,6 @@ sub get_real_coretaxon {
 	my $hiscoreheader = '';
 
 	# generate a unique filename 
-<<<<<<< HEAD
-	my $fnum = unique_hex(8);
-	while (-f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in') or -f File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out')) { $fnum = unique_hex(8) }
-	my $inf  = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in');
-	my $outf = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out');
-=======
 	my $fnum  = unique_hex(8);
 	my $inf   = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.in');
 	my $outf  = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out');
@@ -249,7 +243,6 @@ sub get_real_coretaxon {
 		$outf  = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.out');
 		$treef = File::Spec->catfile($tmpdir, 'hamstr-reftaxfix-' . $fnum . '.dnd');
 	}
->>>>>>> f6f347e1b5689e80a1d59dee2159f315c2c22127
 
 	foreach (keys %$sequences) {
 		my ($geneid, $taxon, $id) = split /\|/;
